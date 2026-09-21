@@ -59,7 +59,8 @@
 
         <!-- AJOUT D'ÉVÉNEMENT -->
         <div class="space-y-2">
-          <input id="category" type="text" placeholder="Catégorie (ex: Maths, Vaisselle, Chambre...)" class="w-full p-2 border rounded-lg">
+          <!-- Liste déroulante dynamique des catégories -->
+          <select id="category-select" onchange="checkCategory(this.value)" class="w-full p-2 border rounded-lg bg-white text-xs"></select>
           <input id="comment" type="text" placeholder="Commentaire / Détail..." class="w-full p-2 border rounded-lg">
           <div class="grid grid-cols-3 gap-2">
             <button onclick="addPoint('scolaire', 1)" class="bg-green-500 text-white p-2 rounded-lg text-xs font-bold">+1 Scolaire</button>
@@ -117,11 +118,43 @@
         if (userRole === 'parent') {
           toggleView('parent-view', true);
           loadChildren();
+          initCategories();
         } else {
           toggleView('child-view', true);
           listenEvents(currentUser.uid, 'my-total');
         }
       });
+    }
+
+    function initCategories() {
+      // Écouter et charger les catégories en temps réel
+      db.collection('categories').orderBy('nom').onSnapshot(snap => {
+        if (snap.empty) {
+          // Seeder par défaut
+          const defaults = ["Maths", "Chambre", "Table", "Vaisselle", "Lecture", "Comportement", "Douche"];
+          defaults.forEach(c => db.collection('categories').add({ nom: c }));
+          return;
+        }
+        const select = g('category-select');
+        select.innerHTML = '<option value="">Sélectionner une catégorie</option>';
+        snap.forEach(doc => {
+          select.innerHTML += `<option value="${doc.data().nom}">${doc.data().nom}</option>`;
+        });
+        select.innerHTML += '<option value="autre">Autre...</option>';
+      });
+    }
+
+    function checkCategory(val) {
+      if (val === 'autre') {
+        const nv = prompt("Saisissez la nouvelle catégorie :");
+        if (nv) {
+          db.collection('categories').add({ nom: nv }).then(() => {
+            setTimeout(() => { g('category-select').value = nv; }, 500);
+          });
+        } else {
+          g('category-select').value = '';
+        }
+      }
     }
 
     function loadChildren() {
@@ -165,7 +198,6 @@
             const replyBtn = (ev.desaccord && userRole === 'parent') ? `<button onclick="repondreContestation('${doc.id}')" class="text-blue-600 underline ml-2 font-bold">✍️ Répondre</button>` : '';
             const deleteBtn = (userRole === 'parent') ? `<button onclick="supprimerPoint('${doc.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
 
-            // Utilisation du champ catégorie créé en base
             const labelCategorie = ev.categorie ? `[${ev.categorie}] ` : '';
 
             const itemHtml = `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs flex justify-between items-center">
@@ -212,7 +244,7 @@
 
     function addPoint(type, val) {
       const childId = g('child-select').value;
-      const cat = g('category').value;
+      const cat = g('category-select').value;
       const comm = g('comment').value;
       if (!childId) return;
       db.collection('utilisateurs').doc(childId).collection('evenements').add({
@@ -225,7 +257,7 @@
         cloture: false
       }).then(() => {
         g('comment').value = '';
-        g('category').value = '';
+        g('category-select').value = '';
       });
     }
 
