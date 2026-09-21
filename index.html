@@ -34,7 +34,7 @@
           <h3 id="child-total" class="text-3xl font-bold text-blue-700">0</h3>
         </div>
         
-        <!-- MODULE DE CLÔTURE -->
+        <!-- PROPOSITION DE CLÔTURE -->
         <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 space-y-3">
           <h3 class="font-bold text-yellow-800 text-sm">PROPOSITION DE CLÔTURE</h3>
           <div class="text-xs text-gray-700 space-y-1">
@@ -74,10 +74,10 @@
         </div>
       </div>
 
-      <!-- HISTORIQUE -->
+      <!-- HISTORIQUE REGROUPÉ -->
       <div class="mt-6 border-t pt-4">
         <h4 class="font-bold text-gray-700 mb-2 text-sm">Activités en cours</h4>
-        <div id="events-list" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
+        <div id="events-list" class="space-y-4"></div>
       </div>
     </div>
   </div>
@@ -142,28 +142,57 @@
         .onSnapshot(snap => {
           activeNetTotal = 0;
           activeScolaireCount = 0;
-          const list = g('events-list');
-          list.innerHTML = '';
+          
+          let scolHtml = '', autrHtml = '', manqHtml = '';
           
           snap.forEach(doc => {
             const ev = doc.data();
-            if (ev.cloture) return; // Filtrage des activités déjà archivées
+            if (ev.cloture) return; // Filtrer archivés
             
             activeNetTotal += ev.valeur;
             if (ev.type === 'scolaire') activeScolaireCount++;
             
+            // Formatage de la date et l'heure
+            const rawDate = ev.date ? ev.date.toDate() : new Date();
+            const dateStr = rawDate.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            
             const color = ev.valeur > 0 ? (ev.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600';
             const badge = ev.desaccord ? `<div class="text-orange-500 font-semibold mt-1">🟠 Contesté : "${ev.commEnfant}"</div>` : '';
+            
             const actionBtn = (!ev.desaccord && userRole === 'enfant') ? `<button onclick="contester('${doc.id}')" class="text-red-500 underline ml-2 font-bold">Contester</button>` : '';
+            const deleteBtn = (userRole === 'parent') ? `<button onclick="supprimerPoint('${doc.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
 
-            list.innerHTML += `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100">
-              <div class="flex justify-between">
-                <span><strong>${ev.type.toUpperCase()}</strong>: ${ev.commentaire} ${actionBtn}</span>
-                <span class="${color} font-bold">${ev.valeur > 0 ? '+' : ''}${ev.valeur}</span>
+            const itemHtml = `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs flex justify-between items-center">
+              <div>
+                <span><strong>${ev.commentaire}</strong> ${actionBtn}</span>
+                <span class="text-gray-400 block text-[10px]">${dateStr}</span>
+                ${badge}
               </div>
-              ${badge}
+              <div class="flex items-center">
+                <span class="${color} font-bold">${ev.valeur > 0 ? '+' : ''}${ev.valeur}</span>
+                ${deleteBtn}
+              </div>
             </div>`;
+
+            if (ev.type === 'scolaire') scolHtml += itemHtml;
+            else if (ev.type === 'autre') autrHtml += itemHtml;
+            else if (ev.type === 'manquement') manqHtml += itemHtml;
           });
+          
+          g('events-list').innerHTML = `
+            <div class="space-y-1">
+              <p class="font-bold text-green-700 text-xs">🎓 Efforts Scolaires</p>
+              ${scolHtml || '<p class="text-gray-400 text-[10px] italic">Aucun effort scolaire cette semaine.</p>'}
+            </div>
+            <div class="space-y-1 mt-3">
+              <p class="font-bold text-blue-700 text-xs">🔵 Autres Efforts</p>
+              ${autrHtml || '<p class="text-gray-400 text-[10px] italic">Aucun autre effort cette semaine.</p>'}
+            </div>
+            <div class="space-y-1 mt-3">
+              <p class="font-bold text-red-700 text-xs">🔴 Manquements</p>
+              ${manqHtml || '<p class="text-gray-400 text-[10px] italic">Aucun manquement cette semaine.</p>'}
+            </div>
+          `;
           
           g(totalElementId).innerText = activeNetTotal;
           if (userRole === 'parent') {
@@ -198,6 +227,13 @@
       }
     }
 
+    function supprimerPoint(eventId) {
+      if (confirm("Voulez-vous vraiment annuler/supprimer cette activité ?")) {
+        const childId = g('child-select').value;
+        db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).delete();
+      }
+    }
+
     function validerSemaine() {
       const childId = g('child-select').value;
       if (!childId) return;
@@ -214,13 +250,12 @@
         totalGagne: 5 + (preVal ? 5 : 0) + (scoVal ? 5 : 0),
         commentaire: comm
       }).then(() => {
-        // Archiver tous les événements de la semaine en cours
         db.collection('utilisateurs').doc(childId).collection('evenements').where('cloture', '==', false).get()
           .then(snap => {
             const batch = db.batch();
             snap.forEach(doc => batch.update(doc.ref, { cloture: true }));
             batch.commit().then(() => {
-              alert("Semaine clôturée avec succès ! Les scores ont été archivés.");
+              alert("Semaine clôturée et archivée !");
               g('parent-comment').value = '';
             });
           });
