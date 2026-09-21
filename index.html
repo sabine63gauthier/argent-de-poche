@@ -142,7 +142,6 @@
         .onSnapshot(snap => {
           activeNetTotal = 0;
           activeScolaireCount = 0;
-          
           let scolHtml = '', autrHtml = '', manqHtml = '';
           
           snap.forEach(doc => {
@@ -156,16 +155,21 @@
             const dateStr = rawDate.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
             
             const color = ev.valeur > 0 ? (ev.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600';
+            
+            // Éléments de contestation et réponse
             const badge = ev.desaccord ? `<div class="text-orange-500 font-semibold mt-1">🟠 Contesté : "${ev.commEnfant}"</div>` : '';
+            const replyHtml = ev.reponseParent ? `<div class="text-gray-500 italic mt-1">💬 Décision parent : "${ev.reponseParent}"</div>` : '';
             
             const actionBtn = (!ev.desaccord && userRole === 'enfant') ? `<button onclick="contester('${doc.id}')" class="text-red-500 underline ml-2 font-bold">Contester</button>` : '';
+            const replyBtn = (ev.desaccord && userRole === 'parent') ? `<button onclick="repondreContestation('${doc.id}')" class="text-blue-600 underline ml-2 font-bold">✍️ Répondre</button>` : '';
             const deleteBtn = (userRole === 'parent') ? `<button onclick="supprimerPoint('${doc.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
 
             const itemHtml = `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs flex justify-between items-center">
               <div>
-                <span><strong>${ev.commentaire}</strong> ${actionBtn}</span>
+                <span><strong>${ev.commentaire}</strong> ${actionBtn} ${replyBtn}</span>
                 <span class="text-gray-400 block text-[10px]">${dateStr}</span>
                 ${badge}
+                ${replyHtml}
               </div>
               <div class="flex items-center">
                 <span class="${color} font-bold">${ev.valeur > 0 ? '+' : ''}${ev.valeur}</span>
@@ -173,7 +177,6 @@
               </div>
             </div>`;
 
-            // Correction : si le type est inconnu ou absent, on le force dans "Autres" pour qu'il soit visible et supprimable !
             if (ev.type === 'scolaire') scolHtml += itemHtml;
             else if (ev.type === 'manquement') manqHtml += itemHtml;
             else autrHtml += itemHtml; 
@@ -223,6 +226,17 @@
         db.collection('utilisateurs').doc(currentUser.uid).collection('evenements').doc(eventId).update({
           desaccord: true,
           commEnfant: raison
+        });
+      }
+    }
+
+    function repondreContestation(eventId) {
+      const explication = prompt("Expliquez votre décision finale à l'enfant :");
+      if (explication !== null) {
+        const childId = g('child-select').value;
+        db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).update({
+          desaccord: false, // Résoudre la contestation
+          reponseParent: explication
         });
       }
     }
