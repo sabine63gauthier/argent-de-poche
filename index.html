@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 flex justify-center items-start select-none">
+<body class="bg-gray-100 min-h-screen p-4 flex justify-center items-start">
   <div class="w-full max-w-md bg-white p-6 rounded-2xl shadow-md">
     <!-- CONNEXION -->
     <div id="login-card" class="block">
@@ -59,7 +59,7 @@
 
         <!-- AJOUT D'ÉVÉNEMENT -->
         <div class="space-y-2">
-          <input id="category" type="text" placeholder="Catégorie (ex: Maths, Chambre, Vaisselle...)" class="w-full p-2 border rounded-lg">
+          <input id="category" type="text" placeholder="Catégorie (ex: Maths, Vaisselle, Chambre...)" class="w-full p-2 border rounded-lg">
           <input id="comment" type="text" placeholder="Commentaire / Détail..." class="w-full p-2 border rounded-lg">
           <div class="grid grid-cols-3 gap-2">
             <button onclick="addPoint('scolaire', 1)" class="bg-green-500 text-white p-2 rounded-lg text-xs font-bold">+1 Scolaire</button>
@@ -165,9 +165,12 @@
             const replyBtn = (ev.desaccord && userRole === 'parent') ? `<button onclick="repondreContestation('${doc.id}')" class="text-blue-600 underline ml-2 font-bold">✍️ Répondre</button>` : '';
             const deleteBtn = (userRole === 'parent') ? `<button onclick="supprimerPoint('${doc.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
 
+            // Utilisation du champ catégorie créé en base
+            const labelCategorie = ev.categorie ? `[${ev.categorie}] ` : '';
+
             const itemHtml = `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs flex justify-between items-center">
               <div>
-                <span><strong>[${ev.categorie.toUpperCase()}]</strong> ${ev.commentaire} ${actionBtn} ${replyBtn}</span>
+                <span><strong>${labelCategorie}${ev.commentaire}</strong> ${actionBtn} ${replyBtn}</span>
                 <span class="text-gray-400 block text-[10px]">${dateStr}</span>
                 ${badge}
                 ${replyHtml}
@@ -209,14 +212,13 @@
 
     function addPoint(type, val) {
       const childId = g('child-select').value;
-      const comm = g('comment').value;
       const cat = g('category').value;
+      const comm = g('comment').value;
       if (!childId) return;
-      
       db.collection('utilisateurs').doc(childId).collection('evenements').add({
         type: type,
         categorie: cat || (type === 'scolaire' ? 'Scolaire' : type === 'autre' ? 'Autre' : 'Manquement'),
-        commentaire: comm || 'Activité enregistrée',
+        commentaire: comm || (type === 'scolaire' ? 'Effort scolaire' : type === 'autre' ? 'Autre effort' : 'Manquement'),
         date: firebase.firestore.FieldValue.serverTimestamp(),
         valeur: val,
         desaccord: false,
@@ -235,4 +237,53 @@
           commEnfant: raison
         });
       }
-    
+    }
+
+    function repondreContestation(eventId) {
+      const explication = prompt("Expliquez votre décision :");
+      if (explication !== null) {
+        const childId = g('child-select').value;
+        db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).update({
+          desaccord: false,
+          reponseParent: explication
+        });
+      }
+    }
+
+    function supprimerPoint(eventId) {
+      if (confirm("Voulez-vous supprimer ?")) {
+        const childId = g('child-select').value;
+        db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).delete();
+      }
+    }
+
+    function validerSemaine() {
+      const childId = g('child-select').value;
+      if (!childId) return;
+      const preVal = g('check-prerequis').checked;
+      const scoVal = g('check-scolaire').checked;
+      const comm = g('parent-comment').value;
+
+      db.collection('utilisateurs').doc(childId).collection('clotures').add({
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+        totalNet: activeNetTotal,
+        scolaires: activeScolaireCount,
+        prerequisAccorde: preVal,
+        scolaireAccorde: scoVal,
+        totalGagne: 5 + (preVal ? 5 : 0) + (scoVal ? 5 : 0),
+        commentaire: comm
+      }).then(() => {
+        db.collection('utilisateurs').doc(childId).collection('evenements').where('cloture', '==', false).get()
+          .then(snap => {
+            const batch = db.batch();
+            snap.forEach(doc => batch.update(doc.ref, { cloture: true }));
+            batch.commit().then(() => {
+              alert("Semaine clôturée !");
+              g('parent-comment').value = '';
+            });
+          });
+      });
+    }
+  </script>
+</body>
+</html>
