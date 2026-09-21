@@ -26,7 +26,6 @@
       <div class="flex justify-between items-center mb-4 pb-2 border-b">
         <div class="flex items-center">
           <h2 id="user-title" class="text-xl font-bold text-blue-600">Chargement...</h2>
-          <!-- Bouton d'aide ludique -->
           <button onclick="toggleHelp(true)" class="ml-2 text-base">❓</button>
         </div>
         <div class="flex items-center space-x-3">
@@ -106,7 +105,7 @@
       <h3 class="text-xl font-bold text-blue-600">🎯 Règles du Jeu !</h3>
       <div class="space-y-3 text-left text-xs text-gray-700">
         <p class="font-medium text-center text-gray-900">Relève les défis pour remplir ta cagnotte :</p>
-        <p>🎓 <strong>Efforts Scolaires (+1) :</strong> Fais-en au moins 3 pour débloquer ton super bonus scolaire de 5 € !</p>
+        <p>🎓 <strong>Efforts Scolaires (+1) :</strong> Fais-en au moins 3 pour débloquer ton bonus scolaire de 5 € !</p>
         <p>🔵 <strong>Autres Efforts (+1) :</strong> Aide à la maison, range ta chambre, vider le lave-vaisselle... pour augmenter ton score !</p>
         <p>🔴 <strong>Manquements (-1) :</strong> Attention aux manquements qui retirent 1 point à ton total.</p>
         <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
@@ -146,10 +145,9 @@
     }
     function g(id) { return document.getElementById(id); }
     function toggleView(id, show) { g(id).classList.toggle('hidden', !show); }
-
     function toggleHelp(show) { toggleView('help-modal', !show); }
 
-    // Calcul du numéro de semaine actuel (Semaine A ou B)
+    // Règle d'alternance Semaine A/B calée sur votre rythme
     function getWeekType() {
       const d = new Date();
       const target = new Date(d.valueOf());
@@ -161,25 +159,30 @@
         target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
       }
       const weekNo = 1 + Math.ceil((firstThursday - target) / 604800000);
-      return weekNo % 2 === 0 ? "Semaine B" : "Semaine A";
+      return weekNo % 2 === 0 ? "Semaine 1/A" : "Semaine 2/B";
     }
 
     function loadUser() {
       g('week-type').innerText = getWeekType();
       db.collection('utilisateurs').doc(currentUser.uid).get().then(doc => {
-        const data = doc.data();
-        userRole = data.role;
-        g('user-title').innerText = data.prenom;
-        if (userRole === 'parent') {
-          toggleView('parent-view', true);
-          loadChildren();
-          initCategories();
+        if (doc.exists) {
+          const data = doc.data();
+          userRole = data.role;
+          g('user-title').innerText = data.prenom;
+          if (userRole === 'parent') {
+            toggleView('parent-view', true);
+            loadChildren();
+            initCategories();
+          } else {
+            toggleView('child-view', true);
+            listenEvents(currentUser.uid, 'my-total');
+            listenClotures(currentUser.uid);
+          }
         } else {
-          toggleView('child-view', true);
-          listenEvents(currentUser.uid, 'my-total');
-          listenClotures(currentUser.uid);
+          alert("Profil introuvable en base de données.");
+          logout();
         }
-      });
+      }).catch(e => alert("Erreur d'accès : " + e.message));
     }
 
     function initCategories() {
@@ -231,10 +234,7 @@
     function listenEvents(childId, totalElementId) {
       unsubEvents = db.collection('utilisateurs').doc(childId).collection('evenements').orderBy('date', 'desc')
         .onSnapshot(snap => {
-          activeNetTotal = 0;
-          activeScolaire = 0;
-          activeAutre = 0;
-          activeManque = 0;
+          activeNetTotal = 0; activeScolaire = 0; activeAutre = 0; activeManque = 0;
           let scolHtml = '', autrHtml = '', manqHtml = '';
           
           snap.forEach(doc => {
@@ -247,7 +247,6 @@
             else activeAutre++;
             
             const rawDate = ev.date ? ev.date.toDate() : new Date();
-            
             let dateStr = '';
             if (userRole === 'enfant') {
               dateStr = rawDate.toLocaleDateString('fr-FR', { weekday: 'long' }) + ' ' + 
@@ -300,7 +299,6 @@
           `;
           
           g(totalElementId).innerText = activeNetTotal;
-          
           const detailStr = `🎓 ${activeScolaire} | 🔵 ${activeAutre} | 🔴 ${activeManque}`;
           if (userRole === 'parent') {
             g('child-breakdown').innerText = detailStr;
@@ -328,6 +326,17 @@
             const rawDate = cl.date ? cl.date.toDate() : new Date();
             const dateStr = rawDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
             
+            // Construction des détails des points archivés
+            let detailsHtml = '';
+            if (cl.details && cl.details.length > 0) {
+              detailsHtml = '<div class="mt-2 space-y-1 border-t border-yellow-200 pt-2">';
+              cl.details.forEach(p => {
+                const col = p.valeur > 0 ? 'text-green-600' : 'text-red-600';
+                detailsHtml += `<p class="text-[9px] text-gray-500">[${p.categorie}] ${p.commentaire} <span class="${col} font-bold">${p.valeur > 0 ? '+' : ''}${p.valeur}</span></p>`;
+              });
+              detailsHtml += '</div>';
+            }
+
             list.innerHTML += `
               <details class="p-3 bg-yellow-50 rounded-lg border border-yellow-100 text-xs">
                 <summary class="flex justify-between font-bold text-yellow-800 cursor-pointer outline-none">
@@ -335,10 +344,11 @@
                   <span class="flex items-center">${cl.totalGagne} € <span class="ml-1 text-[10px] text-yellow-600">▼</span></span>
                 </summary>
                 <div class="text-[10px] text-gray-600 space-y-0.5 mt-2 pt-2 border-t border-yellow-200">
-                  <p>Total Net : ${cl.totalNet} | Scolaires : ${cl.scolaires}/3</p>
+                  <p>Total : ${cl.totalNet} | Scolaires : ${cl.scolaires}/3</p>
                   <p>Prérequis : ${cl.prerequisAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>
                   <p>Bonus Scolaire : ${cl.scolaireAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>
                   ${cl.commentaire ? `<p class="italic text-gray-500 mt-1">💬 "${cl.commentaire}"</p>` : ''}
+                  ${detailsHtml}
                 </div>
               </details>
             `;
@@ -400,25 +410,34 @@
       const scoVal = g('check-scolaire').checked;
       const comm = g('parent-comment').value;
 
-      db.collection('utilisateurs').doc(childId).collection('clotures').add({
-        date: firebase.firestore.FieldValue.serverTimestamp(),
-        totalNet: activeNetTotal,
-        scolaires: activeScolaire,
-        prerequisAccorde: preVal,
-        scolaireAccorde: scoVal,
-        totalGagne: 5 + (preVal ? 5 : 0) + (scoVal ? 5 : 0),
-        commentaire: comm
-      }).then(() => {
-        db.collection('utilisateurs').doc(childId).collection('evenements').where('cloture', '==', false).get()
-          .then(snap => {
+      // Récupérer et lister les points actifs pour les archiver directement dans la clôture
+      db.collection('utilisateurs').doc(childId).collection('evenements').where('cloture', '==', false).get()
+        .then(snap => {
+          const pointsList = [];
+          snap.forEach(doc => {
+            const ev = doc.data();
+            pointsList.push({ commentaire: ev.commentaire, valeur: ev.valeur, categorie: ev.categorie });
+          });
+
+          // Création de la clôture contenant les détails
+          db.collection('utilisateurs').doc(childId).collection('clotures').add({
+            date: firebase.firestore.FieldValue.serverTimestamp(),
+            totalNet: activeNetTotal,
+            scolaires: activeScolaire,
+            prerequisAccorde: preVal,
+            scolaireAccorde: scoVal,
+            totalGagne: 5 + (preVal ? 5 : 0) + (scoVal ? 5 : 0),
+            commentaire: comm,
+            details: pointsList
+          }).then(() => {
             const batch = db.batch();
             snap.forEach(doc => batch.update(doc.ref, { cloture: true }));
             batch.commit().then(() => {
-              alert("Semaine clôturée !");
+              alert("Semaine clôturée avec succès !");
               g('parent-comment').value = '';
             });
           });
-      });
+        });
     }
   </script>
 </body>
