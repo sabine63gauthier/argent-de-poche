@@ -2,14 +2,16 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Argent de Poche</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 flex justify-center items-start">
+<body class="bg-gray-100 min-h-screen p-4 flex justify-center items-start select-none">
   <div class="w-full max-w-md bg-white p-6 rounded-2xl shadow-md">
     <!-- CONNEXION -->
     <div id="login-card" class="block">
@@ -57,7 +59,8 @@
 
         <!-- AJOUT D'ÉVÉNEMENT -->
         <div class="space-y-2">
-          <input id="comment" type="text" placeholder="Commentaire d'activité..." class="w-full p-2 border rounded-lg">
+          <input id="category" type="text" placeholder="Catégorie (ex: Maths, Chambre, Vaisselle...)" class="w-full p-2 border rounded-lg">
+          <input id="comment" type="text" placeholder="Commentaire / Détail..." class="w-full p-2 border rounded-lg">
           <div class="grid grid-cols-3 gap-2">
             <button onclick="addPoint('scolaire', 1)" class="bg-green-500 text-white p-2 rounded-lg text-xs font-bold">+1 Scolaire</button>
             <button onclick="addPoint('autre', 1)" class="bg-blue-500 text-white p-2 rounded-lg text-xs font-bold">+1 Autre</button>
@@ -155,10 +158,8 @@
             const dateStr = rawDate.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
             
             const color = ev.valeur > 0 ? (ev.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600';
-            
-            // Éléments de contestation et réponse
             const badge = ev.desaccord ? `<div class="text-orange-500 font-semibold mt-1">🟠 Contesté : "${ev.commEnfant}"</div>` : '';
-            const replyHtml = ev.reponseParent ? `<div class="text-gray-500 italic mt-1">💬 Décision parent : "${ev.reponseParent}"</div>` : '';
+            const replyHtml = ev.reponseParent ? `<div class="text-gray-500 italic mt-1">💬 Décision : "${ev.reponseParent}"</div>` : '';
             
             const actionBtn = (!ev.desaccord && userRole === 'enfant') ? `<button onclick="contester('${doc.id}')" class="text-red-500 underline ml-2 font-bold">Contester</button>` : '';
             const replyBtn = (ev.desaccord && userRole === 'parent') ? `<button onclick="repondreContestation('${doc.id}')" class="text-blue-600 underline ml-2 font-bold">✍️ Répondre</button>` : '';
@@ -166,7 +167,7 @@
 
             const itemHtml = `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs flex justify-between items-center">
               <div>
-                <span><strong>${ev.commentaire}</strong> ${actionBtn} ${replyBtn}</span>
+                <span><strong>[${ev.categorie.toUpperCase()}]</strong> ${ev.commentaire} ${actionBtn} ${replyBtn}</span>
                 <span class="text-gray-400 block text-[10px]">${dateStr}</span>
                 ${badge}
                 ${replyHtml}
@@ -185,15 +186,15 @@
           g('events-list').innerHTML = `
             <div class="space-y-1">
               <p class="font-bold text-green-700 text-xs">🎓 Efforts Scolaires</p>
-              ${scolHtml || '<p class="text-gray-400 text-[10px] italic">Aucun effort scolaire cette semaine.</p>'}
+              ${scolHtml || '<p class="text-gray-400 text-[10px] italic">Aucun effort.</p>'}
             </div>
             <div class="space-y-1 mt-3">
               <p class="font-bold text-blue-700 text-xs">🔵 Autres Efforts</p>
-              ${autrHtml || '<p class="text-gray-400 text-[10px] italic">Aucun autre effort cette semaine.</p>'}
+              ${autrHtml || '<p class="text-gray-400 text-[10px] italic">Aucun autre effort.</p>'}
             </div>
             <div class="space-y-1 mt-3">
               <p class="font-bold text-red-700 text-xs">🔴 Manquements</p>
-              ${manqHtml || '<p class="text-gray-400 text-[10px] italic">Aucun manquement cette semaine.</p>'}
+              ${manqHtml || '<p class="text-gray-400 text-[10px] italic">Aucun manquement.</p>'}
             </div>
           `;
           
@@ -209,15 +210,21 @@
     function addPoint(type, val) {
       const childId = g('child-select').value;
       const comm = g('comment').value;
+      const cat = g('category').value;
       if (!childId) return;
+      
       db.collection('utilisateurs').doc(childId).collection('evenements').add({
         type: type,
-        commentaire: comm || (type === 'scolaire' ? 'Effort scolaire' : type === 'autre' ? 'Autre effort' : 'Manquement'),
+        categorie: cat || (type === 'scolaire' ? 'Scolaire' : type === 'autre' ? 'Autre' : 'Manquement'),
+        commentaire: comm || 'Activité enregistrée',
         date: firebase.firestore.FieldValue.serverTimestamp(),
         valeur: val,
         desaccord: false,
         cloture: false
-      }).then(() => g('comment').value = '');
+      }).then(() => {
+        g('comment').value = '';
+        g('category').value = '';
+      });
     }
 
     function contester(eventId) {
@@ -228,53 +235,4 @@
           commEnfant: raison
         });
       }
-    }
-
-    function repondreContestation(eventId) {
-      const explication = prompt("Expliquez votre décision finale à l'enfant :");
-      if (explication !== null) {
-        const childId = g('child-select').value;
-        db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).update({
-          desaccord: false, // Résoudre la contestation
-          reponseParent: explication
-        });
-      }
-    }
-
-    function supprimerPoint(eventId) {
-      if (confirm("Voulez-vous vraiment annuler/supprimer cette activité ?")) {
-        const childId = g('child-select').value;
-        db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).delete();
-      }
-    }
-
-    function validerSemaine() {
-      const childId = g('child-select').value;
-      if (!childId) return;
-      const preVal = g('check-prerequis').checked;
-      const scoVal = g('check-scolaire').checked;
-      const comm = g('parent-comment').value;
-
-      db.collection('utilisateurs').doc(childId).collection('clotures').add({
-        date: firebase.firestore.FieldValue.serverTimestamp(),
-        totalNet: activeNetTotal,
-        scolaires: activeScolaireCount,
-        prerequisAccorde: preVal,
-        scolaireAccorde: scoVal,
-        totalGagne: 5 + (preVal ? 5 : 0) + (scoVal ? 5 : 0),
-        commentaire: comm
-      }).then(() => {
-        db.collection('utilisateurs').doc(childId).collection('evenements').where('cloture', '==', false).get()
-          .then(snap => {
-            const batch = db.batch();
-            snap.forEach(doc => batch.update(doc.ref, { cloture: true }));
-            batch.commit().then(() => {
-              alert("Semaine clôturée et archivée !");
-              g('parent-comment').value = '';
-            });
-          });
-      });
-    }
-  </script>
-</body>
-</html>
+    
