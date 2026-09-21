@@ -74,7 +74,7 @@
         </div>
       </div>
 
-      <!-- HISTORIQUE REGROUPÉ -->
+      <!-- HISTORIQUE -->
       <div class="mt-6 border-t pt-4">
         <h4 class="font-bold text-gray-700 mb-2 text-sm">Activités en cours</h4>
         <div id="events-list" class="space-y-4"></div>
@@ -147,12 +147,11 @@
           
           snap.forEach(doc => {
             const ev = doc.data();
-            if (ev.cloture) return; // Filtrer archivés
+            if (ev.cloture) return;
             
             activeNetTotal += ev.valeur;
             if (ev.type === 'scolaire') activeScolaireCount++;
             
-            // Formatage de la date et l'heure
             const rawDate = ev.date ? ev.date.toDate() : new Date();
             const dateStr = rawDate.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
             
@@ -174,9 +173,10 @@
               </div>
             </div>`;
 
+            // Correction : si le type est inconnu ou absent, on le force dans "Autres" pour qu'il soit visible et supprimable !
             if (ev.type === 'scolaire') scolHtml += itemHtml;
-            else if (ev.type === 'autre') autrHtml += itemHtml;
             else if (ev.type === 'manquement') manqHtml += itemHtml;
+            else autrHtml += itemHtml; 
           });
           
           g('events-list').innerHTML = `
