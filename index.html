@@ -26,6 +26,7 @@
       <div class="flex justify-between items-center mb-4 pb-2 border-b">
         <div class="flex items-center">
           <h2 id="user-title" class="text-xl font-bold text-blue-600">Chargement...</h2>
+          <!-- Bouton d'aide ludique -->
           <button onclick="toggleHelp(true)" class="ml-2 text-base">❓</button>
         </div>
         <div class="flex items-center space-x-3">
@@ -106,7 +107,7 @@
       <div class="space-y-3 text-left text-xs text-gray-700">
         <p class="font-medium text-center text-gray-900">Relève les défis pour remplir ta cagnotte :</p>
         <p>🎓 <strong>Efforts Scolaires (+1) :</strong> Fais-en au moins 3 pour débloquer ton super bonus scolaire de 5 € !</p>
-        <p>🔵 <strong>Autres Efforts (+1) :</strong> Aide à la maison, range ta chambre... pour augmenter ton score !</p>
+        <p>🔵 <strong>Autres Efforts (+1) :</strong> Aide à la maison, range ta chambre, vider le lave-vaisselle... pour augmenter ton score !</p>
         <p>🔴 <strong>Manquements (-1) :</strong> Attention aux manquements qui retirent 1 point à ton total.</p>
         <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
           <p class="font-bold text-yellow-800">Le Grand Objectif :</p>
@@ -148,6 +149,7 @@
 
     function toggleHelp(show) { toggleView('help-modal', !show); }
 
+    // Calcul du numéro de semaine actuel (Semaine A ou B)
     function getWeekType() {
       const d = new Date();
       const target = new Date(d.valueOf());
@@ -159,8 +161,7 @@
         target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
       }
       const weekNo = 1 + Math.ceil((firstThursday - target) / 604800000);
-      // Alternance demandée (Semaine impaire = Semaine 2 / B, Semaine paire = Semaine 1 / A)
-      return weekNo % 2 === 1 ? "Semaine 2 / B" : "Semaine 1 / A";
+      return weekNo % 2 === 0 ? "Semaine B" : "Semaine A";
     }
 
     function loadUser() {
@@ -313,4 +314,112 @@
     }
 
     function listenClotures(childId) {
-      if (unsubClotures) unsubClotAucune réponse
+      if (unsubClotures) unsubClotures();
+      unsubClotures = db.collection('utilisateurs').doc(childId).collection('clotures').orderBy('date', 'desc')
+        .onSnapshot(snap => {
+          const list = g('clotures-list');
+          list.innerHTML = '';
+          if (snap.empty) {
+            list.innerHTML = '<p class="text-gray-400 text-[10px] italic">Aucune semaine clôturée.</p>';
+            return;
+          }
+          snap.forEach(doc => {
+            const cl = doc.data();
+            const rawDate = cl.date ? cl.date.toDate() : new Date();
+            const dateStr = rawDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+            
+            list.innerHTML += `
+              <details class="p-3 bg-yellow-50 rounded-lg border border-yellow-100 text-xs">
+                <summary class="flex justify-between font-bold text-yellow-800 cursor-pointer outline-none">
+                  <span>Semaine du ${dateStr}</span>
+                  <span class="flex items-center">${cl.totalGagne} € <span class="ml-1 text-[10px] text-yellow-600">▼</span></span>
+                </summary>
+                <div class="text-[10px] text-gray-600 space-y-0.5 mt-2 pt-2 border-t border-yellow-200">
+                  <p>Total Net : ${cl.totalNet} | Scolaires : ${cl.scolaires}/3</p>
+                  <p>Prérequis : ${cl.prerequisAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>
+                  <p>Bonus Scolaire : ${cl.scolaireAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>
+                  ${cl.commentaire ? `<p class="italic text-gray-500 mt-1">💬 "${cl.commentaire}"</p>` : ''}
+                </div>
+              </details>
+            `;
+          });
+        });
+    }
+
+    function addPoint(type, val) {
+      const childId = g('child-select').value;
+      const cat = g('category-select').value;
+      const comm = g('comment').value;
+      if (!childId) return;
+      db.collection('utilisateurs').doc(childId).collection('evenements').add({
+        type: type,
+        categorie: cat || (type === 'scolaire' ? 'Scolaire' : type === 'autre' ? 'Autre' : 'Manquement'),
+        commentaire: comm || (type === 'scolaire' ? 'Effort scolaire' : type === 'autre' ? 'Autre effort' : 'Manquement'),
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+        valeur: val,
+        desaccord: false,
+        cloture: false
+      }).then(() => {
+        g('comment').value = '';
+        g('category-select').value = '';
+      });
+    }
+
+    function contester(eventId) {
+      const raison = prompt("Pourquoi contestez-vous ce point ?");
+      if (raison) {
+        db.collection('utilisateurs').doc(currentUser.uid).collection('evenements').doc(eventId).update({
+          desaccord: true,
+          commEnfant: raison
+        });
+      }
+    }
+
+    function repondreContestation(eventId) {
+      const explication = prompt("Expliquez votre décision :");
+      if (explication !== null) {
+        const childId = g('child-select').value;
+        db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).update({
+          desaccord: false,
+          reponseParent: explication
+        });
+      }
+    }
+
+    function supprimerPoint(eventId) {
+      if (confirm("Voulez-vous supprimer ?")) {
+        const childId = g('child-select').value;
+        db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).delete();
+      }
+    }
+
+    function validerSemaine() {
+      const childId = g('child-select').value;
+      if (!childId) return;
+      const preVal = g('check-prerequis').checked;
+      const scoVal = g('check-scolaire').checked;
+      const comm = g('parent-comment').value;
+
+      db.collection('utilisateurs').doc(childId).collection('clotures').add({
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+        totalNet: activeNetTotal,
+        scolaires: activeScolaire,
+        prerequisAccorde: preVal,
+        scolaireAccorde: scoVal,
+        totalGagne: 5 + (preVal ? 5 : 0) + (scoVal ? 5 : 0),
+        commentaire: comm
+      }).then(() => {
+        db.collection('utilisateurs').doc(childId).collection('evenements').where('cloture', '==', false).get()
+          .then(snap => {
+            const batch = db.batch();
+            snap.forEach(doc => batch.update(doc.ref, { cloture: true }));
+            batch.commit().then(() => {
+              alert("Semaine clôturée !");
+              g('parent-comment').value = '';
+            });
+          });
+      });
+    }
+  </script>
+</body>
+</html>
