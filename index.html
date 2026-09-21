@@ -67,7 +67,7 @@
     };
     firebase.initializeApp(config);
     const db = firebase.firestore();
-    let currentUser, unsubEvents;
+    let currentUser, unsubEvents, userRole;
 
     firebase.auth().onAuthStateChanged(user => {
       currentUser = user;
@@ -86,8 +86,9 @@
     function loadUser() {
       db.collection('utilisateurs').doc(currentUser.uid).get().then(doc => {
         const data = doc.data();
+        userRole = data.role;
         g('user-title').innerText = data.prenom;
-        if (data.role === 'parent') {
+        if (userRole === 'parent') {
           toggleView('parent-view', true);
           loadChildren();
         } else {
@@ -123,9 +124,17 @@
             const ev = doc.data();
             total += ev.valeur;
             const color = ev.valeur > 0 ? (ev.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600';
-            list.innerHTML += `<div class="p-2 bg-gray-50 rounded-lg flex justify-between">
-              <span><strong>${ev.type.toUpperCase()}</strong>: ${ev.commentaire}</span>
-              <span class="${color} font-bold">${ev.valeur > 0 ? '+' : ''}${ev.valeur}</span>
+            
+            // Logique de contestation
+            const badge = ev.desaccord ? `<div class="text-orange-500 font-semibold mt-1">🟠 Contesté : "${ev.commEnfant}"</div>` : '';
+            const actionBtn = (!ev.desaccord && userRole === 'enfant') ? `<button onclick="contester('${doc.id}')" class="text-red-500 underline ml-2 font-bold">Contester</button>` : '';
+
+            list.innerHTML += `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100">
+              <div class="flex justify-between">
+                <span><strong>${ev.type.toUpperCase()}</strong>: ${ev.commentaire} ${actionBtn}</span>
+                <span class="${color} font-bold">${ev.valeur > 0 ? '+' : ''}${ev.valeur}</span>
+              </div>
+              ${badge}
             </div>`;
           });
           g(totalElementId).innerText = total;
@@ -140,8 +149,19 @@
         type: type,
         commentaire: comm || (type === 'scolaire' ? 'Effort scolaire' : type === 'autre' ? 'Autre effort' : 'Manquement'),
         date: firebase.firestore.FieldValue.serverTimestamp(),
-        valeur: val
+        valeur: val,
+        desaccord: false
       }).then(() => g('comment').value = '');
+    }
+
+    function contester(eventId) {
+      const raison = prompt("Pourquoi contestez-vous ce point ?");
+      if (raison) {
+        db.collection('utilisateurs').doc(currentUser.uid).collection('evenements').doc(eventId).update({
+          desaccord: true,
+          commEnfant: raison
+        });
+      }
     }
   </script>
 </body>
