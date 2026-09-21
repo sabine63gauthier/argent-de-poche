@@ -33,8 +33,31 @@
           <p class="text-gray-600 text-sm">Solde Hebdomadaire Net</p>
           <h3 id="child-total" class="text-3xl font-bold text-blue-700">0</h3>
         </div>
+        
+        <!-- MODULE DE CLÔTURE -->
+        <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 space-y-3">
+          <h3 class="font-bold text-yellow-800 text-sm">PROPOSITION DE CLÔTURE</h3>
+          <div class="text-xs text-gray-700 space-y-1">
+            <p>🎓 Efforts scolaires : <span id="stat-scolaires" class="font-bold">0</span>/3</p>
+            <p>💶 Fixe : <span class="font-bold">5 €</span></p>
+          </div>
+          <div class="space-y-2 text-xs">
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" id="check-prerequis" class="rounded">
+              <span>Accorder 5 € de prérequis (Net ≥ 0)</span>
+            </label>
+            <label class="flex items-center space-x-2">
+              <input type="checkbox" id="check-scolaire" class="rounded">
+              <span>Accorder 5 € de bonus scolaire (Scolaires ≥ 3)</span>
+            </label>
+            <input id="parent-comment" type="text" placeholder="Commentaire final de clôture..." class="w-full p-2 border rounded bg-white">
+          </div>
+          <button onclick="validerSemaine()" class="w-full bg-yellow-600 text-white p-2 rounded-lg text-xs font-bold">VALIDER DÉFINITIVEMENT</button>
+        </div>
+
+        <!-- AJOUT D'ÉVÉNEMENT -->
         <div class="space-y-2">
-          <input id="comment" type="text" placeholder="Commentaire (ex: Vaisselle, Devoirs...)" class="w-full p-2 border rounded-lg">
+          <input id="comment" type="text" placeholder="Commentaire d'activité..." class="w-full p-2 border rounded-lg">
           <div class="grid grid-cols-3 gap-2">
             <button onclick="addPoint('scolaire', 1)" class="bg-green-500 text-white p-2 rounded-lg text-xs font-bold">+1 Scolaire</button>
             <button onclick="addPoint('autre', 1)" class="bg-blue-500 text-white p-2 rounded-lg text-xs font-bold">+1 Autre</button>
@@ -51,9 +74,9 @@
         </div>
       </div>
 
-      <!-- HISTORIQUE DE LA SEMAINE -->
+      <!-- HISTORIQUE -->
       <div class="mt-6 border-t pt-4">
-        <h4 class="font-bold text-gray-700 mb-2 text-sm">Historique de la semaine</h4>
+        <h4 class="font-bold text-gray-700 mb-2 text-sm">Activités en cours</h4>
         <div id="events-list" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
       </div>
     </div>
@@ -67,7 +90,7 @@
     };
     firebase.initializeApp(config);
     const db = firebase.firestore();
-    let currentUser, unsubEvents, userRole;
+    let currentUser, unsubEvents, userRole, activeNetTotal = 0, activeScolaireCount = 0;
 
     firebase.auth().onAuthStateChanged(user => {
       currentUser = user;
@@ -117,15 +140,19 @@
     function listenEvents(childId, totalElementId) {
       unsubEvents = db.collection('utilisateurs').doc(childId).collection('evenements').orderBy('date', 'desc')
         .onSnapshot(snap => {
-          let total = 0;
+          activeNetTotal = 0;
+          activeScolaireCount = 0;
           const list = g('events-list');
           list.innerHTML = '';
+          
           snap.forEach(doc => {
             const ev = doc.data();
-            total += ev.valeur;
-            const color = ev.valeur > 0 ? (ev.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600';
+            if (ev.cloture) return; // Filtrage des activités déjà archivées
             
-            // Logique de contestation
+            activeNetTotal += ev.valeur;
+            if (ev.type === 'scolaire') activeScolaireCount++;
+            
+            const color = ev.valeur > 0 ? (ev.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600';
             const badge = ev.desaccord ? `<div class="text-orange-500 font-semibold mt-1">🟠 Contesté : "${ev.commEnfant}"</div>` : '';
             const actionBtn = (!ev.desaccord && userRole === 'enfant') ? `<button onclick="contester('${doc.id}')" class="text-red-500 underline ml-2 font-bold">Contester</button>` : '';
 
@@ -137,7 +164,13 @@
               ${badge}
             </div>`;
           });
-          g(totalElementId).innerText = total;
+          
+          g(totalElementId).innerText = activeNetTotal;
+          if (userRole === 'parent') {
+            g('stat-scolaires').innerText = activeScolaireCount;
+            g('check-prerequis').checked = activeNetTotal >= 0;
+            g('check-scolaire').checked = activeScolaireCount >= 3;
+          }
         });
     }
 
@@ -150,7 +183,8 @@
         commentaire: comm || (type === 'scolaire' ? 'Effort scolaire' : type === 'autre' ? 'Autre effort' : 'Manquement'),
         date: firebase.firestore.FieldValue.serverTimestamp(),
         valeur: val,
-        desaccord: false
+        desaccord: false,
+        cloture: false
       }).then(() => g('comment').value = '');
     }
 
@@ -162,6 +196,35 @@
           commEnfant: raison
         });
       }
+    }
+
+    function validerSemaine() {
+      const childId = g('child-select').value;
+      if (!childId) return;
+      const preVal = g('check-prerequis').checked;
+      const scoVal = g('check-scolaire').checked;
+      const comm = g('parent-comment').value;
+
+      db.collection('utilisateurs').doc(childId).collection('clotures').add({
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+        totalNet: activeNetTotal,
+        scolaires: activeScolaireCount,
+        prerequisAccorde: preVal,
+        scolaireAccorde: scoVal,
+        totalGagne: 5 + (preVal ? 5 : 0) + (scoVal ? 5 : 0),
+        commentaire: comm
+      }).then(() => {
+        // Archiver tous les événements de la semaine en cours
+        db.collection('utilisateurs').doc(childId).collection('evenements').where('cloture', '==', false).get()
+          .then(snap => {
+            const batch = db.batch();
+            snap.forEach(doc => batch.update(doc.ref, { cloture: true }));
+            batch.commit().then(() => {
+              alert("Semaine clôturée avec succès ! Les scores ont été archivés.");
+              g('parent-comment').value = '';
+            });
+          });
+      });
     }
   </script>
 </body>
