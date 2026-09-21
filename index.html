@@ -32,8 +32,9 @@
       <div id="parent-view" class="hidden space-y-4">
         <select id="child-select" onchange="selectChild(this.value)" class="w-full p-2 border rounded-lg bg-gray-50 font-medium"></select>
         <div class="bg-blue-50 p-4 rounded-xl text-center">
-          <p class="text-gray-600 text-sm">Solde Hebdomadaire Net</p>
+          <p class="text-gray-600 text-sm">Total Hebdomadaire</p>
           <h3 id="child-total" class="text-3xl font-bold text-blue-700">0</h3>
+          <p id="child-breakdown" class="text-[11px] text-gray-500 mt-1 font-medium">🎓 0 | 🔵 0 | 🔴 0</p>
         </div>
         
         <!-- PROPOSITION DE CLÔTURE -->
@@ -46,7 +47,7 @@
           <div class="space-y-2 text-xs">
             <label class="flex items-center space-x-2">
               <input type="checkbox" id="check-prerequis" class="rounded">
-              <span>Accorder 5 € de prérequis (Net ≥ 0)</span>
+              <span>Accorder 5 € de prérequis (Total ≥ 0)</span>
             </label>
             <label class="flex items-center space-x-2">
               <input type="checkbox" id="check-scolaire" class="rounded">
@@ -74,6 +75,7 @@
         <div class="bg-blue-50 p-4 rounded-xl text-center">
           <p class="text-gray-600 text-sm">Mon Solde de la Semaine</p>
           <h3 id="my-total" class="text-3xl font-bold text-blue-700">0</h3>
+          <p id="my-breakdown" class="text-[11px] text-gray-500 mt-1 font-medium">🎓 0 | 🔵 0 | 🔴 0</p>
         </div>
       </div>
 
@@ -83,10 +85,10 @@
         <div id="events-list" class="space-y-4"></div>
       </div>
 
-      <!-- SEMAINES CLÔTURÉES (HISTORIQUE) -->
+      <!-- HISTORIQUE DES CLÔTURES -->
       <div class="mt-6 border-t pt-4">
         <h4 class="font-bold text-gray-700 mb-2 text-sm">Semaines clôturées</h4>
-        <div id="clotures-list" class="space-y-2 max-h-48 overflow-y-auto text-xs"></div>
+        <div id="clotures-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
       </div>
     </div>
   </div>
@@ -99,7 +101,8 @@
     };
     firebase.initializeApp(config);
     const db = firebase.firestore();
-    let currentUser, unsubEvents, unsubClotures, userRole, activeNetTotal = 0, activeScolaireCount = 0;
+    let currentUser, unsubEvents, unsubClotures, userRole;
+    let activeNetTotal = 0, activeScolaire = 0, activeAutre = 0, activeManque = 0;
 
     firebase.auth().onAuthStateChanged(user => {
       currentUser = user;
@@ -186,7 +189,9 @@
       unsubEvents = db.collection('utilisateurs').doc(childId).collection('evenements').orderBy('date', 'desc')
         .onSnapshot(snap => {
           activeNetTotal = 0;
-          activeScolaireCount = 0;
+          activeScolaire = 0;
+          activeAutre = 0;
+          activeManque = 0;
           let scolHtml = '', autrHtml = '', manqHtml = '';
           
           snap.forEach(doc => {
@@ -194,10 +199,20 @@
             if (ev.cloture) return;
             
             activeNetTotal += ev.valeur;
-            if (ev.type === 'scolaire') activeScolaireCount++;
+            if (ev.type === 'scolaire') activeScolaire++;
+            else if (ev.type === 'manquement') activeManque++;
+            else activeAutre++;
             
             const rawDate = ev.date ? ev.date.toDate() : new Date();
-            const dateStr = rawDate.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            
+            // Format de la date personnalisé par rôle
+            let dateStr = '';
+            if (userRole === 'enfant') {
+              dateStr = rawDate.toLocaleDateString('fr-FR', { weekday: 'long' }) + ' ' + 
+                        rawDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }).replace(':', 'h');
+            } else {
+              dateStr = rawDate.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+            }
             
             const color = ev.valeur > 0 ? (ev.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600';
             const badge = ev.desaccord ? `<div class="text-orange-500 font-semibold mt-1">🟠 Contesté : "${ev.commEnfant}"</div>` : '';
@@ -243,10 +258,16 @@
           `;
           
           g(totalElementId).innerText = activeNetTotal;
+          
+          // Mise à jour du détail
+          const detailStr = `🎓 ${activeScolaire} | 🔵 ${activeAutre} | 🔴 ${activeManque}`;
           if (userRole === 'parent') {
-            g('stat-scolaires').innerText = activeScolaireCount;
+            g('child-breakdown').innerText = detailStr;
+            g('stat-scolaires').innerText = activeScolaire;
             g('check-prerequis').checked = activeNetTotal >= 0;
-            g('check-scolaire').checked = activeScolaireCount >= 3;
+            g('check-scolaire').checked = activeScolaire >= 3;
+          } else {
+            g('my-breakdown').innerText = detailStr;
           }
         });
     }
@@ -265,18 +286,22 @@
             const cl = doc.data();
             const rawDate = cl.date ? cl.date.toDate() : new Date();
             const dateStr = rawDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-            list.innerHTML += `<div class="p-3 bg-yellow-50 rounded-lg border border-yellow-100 space-y-1 text-xs">
-              <div class="flex justify-between font-bold text-yellow-800">
-                <span>Semaine du ${dateStr}</span>
-                <span>${cl.totalGagne} €</span>
-              </div>
-              <div class="text-[10px] text-gray-600 space-y-0.5">
-                <p>Total Net : ${cl.totalNet} | Scolaires : ${cl.scolaires}/3</p>
-                <p>Prérequis : ${cl.prerequisAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>
-                <p>Bonus Scolaire : ${cl.scolaireAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>
-                ${cl.commentaire ? `<p class="italic text-gray-500 mt-1">💬 "${cl.commentaire}"</p>` : ''}
-              </div>
-            </div>`;
+            
+            // Affichage dépliable avec balise native <details>
+            list.innerHTML += `
+              <details class="p-3 bg-yellow-50 rounded-lg border border-yellow-100 text-xs">
+                <summary class="flex justify-between font-bold text-yellow-800 cursor-pointer outline-none">
+                  <span>Semaine du ${dateStr}</span>
+                  <span class="flex items-center">${cl.totalGagne} € <span class="ml-1 text-[10px] text-yellow-600">▼</span></span>
+                </summary>
+                <div class="text-[10px] text-gray-600 space-y-0.5 mt-2 pt-2 border-t border-yellow-200">
+                  <p>Total Net : ${cl.totalNet} | Scolaires : ${cl.scolaires}/3</p>
+                  <p>Prérequis : ${cl.prerequisAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>
+                  <p>Bonus Scolaire : ${cl.scolaireAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>
+                  ${cl.commentaire ? `<p class="italic text-gray-500 mt-1">💬 "${cl.commentaire}"</p>` : ''}
+                </div>
+              </details>
+            `;
           });
         });
     }
@@ -338,7 +363,7 @@
       db.collection('utilisateurs').doc(childId).collection('clotures').add({
         date: firebase.firestore.FieldValue.serverTimestamp(),
         totalNet: activeNetTotal,
-        scolaires: activeScolaireCount,
+        scolaires: activeScolaire,
         prerequisAccorde: preVal,
         scolaireAccorde: scoVal,
         totalGagne: 5 + (preVal ? 5 : 0) + (scoVal ? 5 : 0),
