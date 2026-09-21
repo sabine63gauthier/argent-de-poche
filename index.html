@@ -7,14 +7,24 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-<div id="app" class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-md">
+<!-- ÉCRAN DE CONNEXION -->
+<div id="login-card" class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-md">
 <h2 class="text-2xl font-bold mb-4 text-center text-blue-600">Argent de Poche</h2>
 <input id="email" type="email" placeholder="Email" class="w-full p-2 border mb-3 rounded-lg">
 <input id="pass" type="password" placeholder="Mot de passe" class="w-full p-3 border mb-4 rounded-lg">
 <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold">Se connecter</button>
 </div>
+
+<!-- TABLEAU DE BORD (Masqué par défaut) -->
+<div id="dashboard" class="hidden w-full max-w-sm bg-white p-6 rounded-2xl shadow-md text-center">
+<h2 class="text-2xl font-bold mb-2 text-blue-600">Tableau de bord</h2>
+<p id="welcome-msg" class="text-gray-700 mb-6 font-medium">Chargement du profil...</p>
+<button onclick="logout()" class="w-full bg-red-500 text-white p-3 rounded-lg font-semibold">Se déconnecter</button>
+</div>
+
 <script>
 const config = {
 apiKey: "AIzaSyDHsad9fwQ23ItoWmiYQZLDFJ6wfN9JpT4",
@@ -22,12 +32,39 @@ authDomain: "argent-de-poche-famille.firebaseapp.com",
 projectId: "argent-de-poche-famille"
 };
 firebase.initializeApp(config);
+const db = firebase.firestore();
+
+// Écouteur de connexion automatique
+firebase.auth().onAuthStateChanged(user => {
+const loginCard = document.getElementById('login-card');
+const dashboard = document.getElementById('dashboard');
+if (user) {
+loginCard.classList.add('hidden');
+dashboard.classList.remove('hidden');
+// Récupération du rôle dans Firestore
+db.collection('utilisateurs').doc(user.uid).get()
+.then(doc => {
+if (doc.exists) {
+const data = doc.data();
+document.getElementById('welcome-msg').innerText = Bonjour ${data.prenom} !\nVous êtes connecté en tant que : ${data.role};
+} else {
+document.getElementById('welcome-msg').innerText = "Profil introuvable dans la base.";
+}
+});
+} else {
+loginCard.classList.remove('hidden');
+dashboard.classList.add('hidden');
+}
+});
+
 function login() {
 const email = document.getElementById('email').value;
 const pass = document.getElementById('pass').value;
-firebase.auth().signInWithEmailAndPassword(email, pass)
-.then(() => alert("Succès ! Vous êtes connecté."))
-.catch(e => alert("Erreur : " + e.message));
+firebase.auth().signInWithEmailAndPassword(email, pass).catch(e => alert("Erreur : " + e.message));
+}
+
+function logout() {
+firebase.auth().signOut();
 }
 </script>
 </body>
