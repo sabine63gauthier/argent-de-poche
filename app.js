@@ -194,7 +194,12 @@ function listenClotures(childId) {
           });
           detailsHtml += '</div>';
         }
-        const actionHtml = (userRole === 'parent') ? `<div class="flex justify-end space-x-2 border-t pt-1 mt-2 text-[10px]"><button onclick="modifierCloture('${doc.id}')" class="text-blue-600 font-bold">✏️ Modifier</button><button onclick="supprimerCloture('${doc.id}')" class="text-red-600 font-bold">🗑️ Supprimer</button></div>` : '';
+        const actionHtml = (userRole === 'parent') ? `
+  <div class="flex justify-end space-x-2 border-t pt-1 mt-2 text-[10px]">
+    <button onclick="modifierCloture('${doc.id}')" class="text-blue-600 font-bold">✏️ Modifier</button>
+    <button onclick="annulerCloture('${doc.id}')" class="text-yellow-600 font-bold">↩️ Annuler Clôture</button>
+    <button onclick="supprimerCloture('${doc.id}')" class="text-red-600 font-bold">🗑️ Supprimer</button>
+  </div>` : '';
         list.innerHTML += `<details class="p-3 bg-yellow-50 rounded-lg border border-yellow-100 text-xs"><summary class="flex justify-between font-bold text-yellow-800 cursor-pointer outline-none"><span>${titreAffiche}</span><span class="flex items-center">${cl.totalGagne} € <span class="ml-1 text-[10px] text-yellow-600">▼</span></span></summary><div class="text-[10px] text-gray-600 space-y-0.5 mt-2 pt-2 border-t border-yellow-200"><p>Total : ${cl.totalNet} | Scolaires : ${cl.scolaires}/3</p><p>Prérequis : ${cl.prerequisAccorde ? '✅ Accordé' : '❌ Non accordé'}</p><p>Bonus Scolaire : ${cl.scolaireAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>${cl.commentaire ? `<p class="italic text-gray-500 mt-1">💬 "${cl.commentaire}"</p>` : ''}${detailsHtml}${actionHtml}</div></details>`;
       });
     });
@@ -250,16 +255,42 @@ function supprimerPoint(eventId) {
 }
 
 function validerSemaine() {
-  const childId = g('child-select').value; if (!childId) return;
-  const preVal = g('check-prerequis').checked; const scoVal = g('check-scolaire').checked; const comm = g('parent-comment').value;
+  const childId = g('child-select').value;
+  if (!childId) return;
+  
+  // Double confirmation de sécurité
+  if (!confirm("Voulez-vous vraiment valider et CLÔTURER DÉFINITIVEMENT cette semaine ?")) return;
+
+  const preVal = g('check-prerequis').checked;
+  const scoVal = g('check-scolaire').checked;
+  const comm = g('parent-comment').value;
+
   db.collection('utilisateurs').doc(childId).collection('evenements').where('cloture', '==', false).get()
     .then(snap => {
-      const pointsList = []; snap.forEach(doc => { const ev = doc.data(); pointsList.push({ commentaire: ev.commentaire, valeur: ev.valeur, categorie: ev.categorie, type: ev.type }); });
+      const pointsList = [];
+      snap.forEach(doc => {
+        const ev = doc.data();
+        pointsList.push({ commentaire: ev.commentaire, valeur: ev.valeur, categorie: ev.categorie, type: ev.type });
+      });
+
+      // 1. Création de la clôture
       db.collection('utilisateurs').doc(childId).collection('clotures').add({
-        date: firebase.firestore.FieldValue.serverTimestamp(), totalNet: activeNetTotal, scolaires: activeScolaire, prerequisAccorde: preVal, scolaireAccorde: scoVal, totalGagne: childFixe + (preVal ? childPrerequis : 0) + (scoVal ? childScolaireBonus : 0), commentaire: comm, details: pointsList
-      }).then(() => {
-        const batch = db.batch(); snap.forEach(doc => batch.update(doc.ref, { cloture: true }));
-        batch.commit().then(() => { alert("Semaine clôturée avec succès !"); g('parent-comment').value = ''; });
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+        totalNet: activeNetTotal,
+        scolaires: activeScolaire,
+        prerequisAccorde: preVal,
+        scolaireAccorde: scoVal,
+        totalGagne: childFixe + (preVal ? childPrerequis : 0) + (scoVal ? childScolaireBonus : 0),
+        commentaire: comm,
+        details: pointsList
+      }).then(clRef => {
+        // 2. Archiver en liant l'événement à la clôture (clotureId)
+        const batch = db.batch();
+        snap.forEach(doc => batch.update(doc.ref, { cloture: true, clotureId: clRef.id }));
+        batch.commit().then(() => {
+          alert("Semaine clôturée avec succès !");
+          g('parent-comment').value = '';
+        });
       });
     });
 }
@@ -273,4 +304,25 @@ function appliquerTheme(data) {
   r.setProperty('--taupeclair', data.couleurTaupe || '#C2B09B');
   r.setProperty('--marroncafe', data.couleurMarron || '#A9907E');
 }
+
+function annulerCloture(clotureId) {
+  if (!confirm("Voulez-vous annuler cette clôture ? Tous les points archivés de cette semaine vont revenir dans les activités en cours !")) return;
+  const childId = g('child-select').value;
+  
+  // 1. Récupérer les événements liés à cette clôture précise
+  db.collection('utilisateurs').doc(childId).collection('evenements').where('clotureId', '==', clotureId).get()
+    .then(snap => {
+      const batch = db.batch();
+      // 2. Les remettre en cours
+      snap.forEach(doc => {
+        batch.update(doc.ref, { cloture: false, clotureId: firebase.firestore.FieldValue.delete() });
+      });
+      // 3. Supprimer le document de clôture de l'historique
+      const clRef = db.collection('utilisateurs').doc(childId).collection('clotures').doc(clotureId);
+      batch.delete(clRef);
+      
+      batch.commit().then(() => alert("Clôture annulée ! Les points sont revenus en cours."));
+    });
+}
+
 
