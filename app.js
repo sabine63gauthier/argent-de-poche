@@ -167,7 +167,7 @@ function listenEvents(childId, totalElementId) {
         }
         const badge = ev.desaccord ? `<div class="text-orange-500 font-semibold mt-1">🟠 Contesté : "${ev.commEnfant}"</div>` : '';
         const replyHtml = ev.reponseParent ? `<div class="text-gray-500 italic mt-1">💬 Décision : "${ev.reponseParent}"</div>` : '';
-        const actionBtn = (!ev.desaccord && userRole === 'enfant' && ev.status !== 'en_attente' && ev.status !== 'refuse') ? `<button onclick="contester('${doc.id}')" class="text-red-500 underline ml-2 font-bold">Contester</button>` : '';
+        const actionBtn = (!ev.desaccord && userRole === 'enfant' && ev.status !== 'en_attente' && ev.status !== 'refuse' && ev.type === 'manquement') ? `<button onclick="contester('${doc.id}')" class="text-red-500 underline ml-2 font-bold">Contester</button>` : '';
         const replyBtn = (ev.desaccord && userRole === 'parent') ? `<button onclick="repondreContestation('${doc.id}')" class="text-blue-600 underline ml-2 font-bold">✍️ Répondre</button>` : '';
         const deleteBtn = (userRole === 'parent') ? `<button onclick="supprimerPoint('${doc.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
         const labelCategorie = ev.categorie ? `[${ev.categorie}] ` : '';
