@@ -7,7 +7,7 @@ firebase.initializeApp(config);
 const db = firebase.firestore();
 let currentUser, unsubEvents, unsubClotures, userRole, activeNetTotal = 0, activeScolaire = 0, activeAutre = 0, activeManque = 0;
 let childFixe = 5, childPrerequis = 5, childScolaireBonus = 5, childMinScolaire = 3;
-let childHeureSemaine = "20h30", childHeureWeekend = "22h00";
+let childHeureSemaine = "20h30", childHeureWeekend = "22h00", selectedChildId = "", childrenList = [];
 
 firebase.auth().onAuthStateChanged(user => {
   currentUser = user;
@@ -96,13 +96,35 @@ function checkCategory(val) {
 
 function loadChildren() {
   db.collection('utilisateurs').where('role', '==', 'enfant').get().then(snap => {
-    const select = g('child-select'); select.innerHTML = '';
-    snap.forEach(doc => { select.innerHTML += `<option value="${doc.id}">${doc.data().prenom}</option>`; });
-    if (select.value) selectChild(select.value);
+    childrenList = [];
+    snap.forEach(doc => {
+      childrenList.push({ id: doc.id, prenom: doc.data().prenom });
+    });
+    if (childrenList.length > 0) {
+      selectChild(childrenList[0].id);
+    }
+  });
+}
+
+function renderChildButtons(selectedId) {
+  const container = g('child-buttons-container');
+  if (!container) return;
+  container.innerHTML = '';
+  childrenList.forEach(child => {
+    const isSelected = child.id === selectedId;
+    const btnClass = isSelected 
+      ? 'bg-kakipastel text-marroncafe font-bold border-2 border-taupeclair shadow-md' 
+      : 'bg-white text-gray-400 border border-gray-200';
+    container.innerHTML += `
+      <button onclick="selectChild('${child.id}')" class="${btnClass} flex-1 p-2.5 rounded-xl text-xs transition duration-200">
+        👧 ${child.prenom}
+      </button>`;
   });
 }
 
 function selectChild(id) {
+  selectedChildId = id;
+  renderChildButtons(id);
   db.collection('utilisateurs').doc(id).get().then(doc => {
     const data = doc.data() || {}; appliquerTheme(data); applyReglages(data);
     g('set-fixe').value = childFixe; g('set-prerequis').value = childPrerequis; g('set-scolaire').value = childScolaireBonus; g('set-min-scolaire').value = childMinScolaire;
