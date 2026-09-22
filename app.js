@@ -7,6 +7,7 @@ firebase.initializeApp(config);
 const db = firebase.firestore();
 let currentUser, unsubEvents, unsubClotures, userRole, activeNetTotal = 0, activeScolaire = 0, activeAutre = 0, activeManque = 0;
 let childFixe = 5, childPrerequis = 5, childScolaireBonus = 5, childMinScolaire = 3;
+let childHeureSemaine = "20h30", childHeureWeekend = "22h00";
 
 firebase.auth().onAuthStateChanged(user => {
   currentUser = user;
@@ -65,6 +66,10 @@ function applyReglages(data) {
   g('help-text-bonus-scol').innerText = childScolaireBonus;
   g('help-text-prerequis').innerText = childPrerequis;
   g('help-text-fixe').innerText = childFixe; // Liaison dynamique de la cagnotte fixe
+  childHeureSemaine = data.heureSemaine !== undefined ? data.heureSemaine : "20h30";
+  childHeureWeekend = data.heureWeekend !== undefined ? data.heureWeekend : "22h00";
+  g('help-text-heure-semaine').innerText = childHeureSemaine;
+  g('help-text-heure-weekend').innerText = childHeureWeekend;
 }
 
 function initCategories() {
@@ -101,6 +106,8 @@ function selectChild(id) {
   db.collection('utilisateurs').doc(id).get().then(doc => {
     const data = doc.data() || {}; applyReglages(data);
     g('set-fixe').value = childFixe; g('set-prerequis').value = childPrerequis; g('set-scolaire').value = childScolaireBonus; g('set-min-scolaire').value = childMinScolaire;
+    g('set-heure-semaine').value = childHeureSemaine;
+    g('set-heure-weekend').value = childHeureWeekend;
     if (unsubEvents) unsubEvents(); listenEvents(id, 'child-total'); listenClotures(id);
   });
 }
@@ -108,7 +115,8 @@ function selectChild(id) {
 function sauvegarderReglages() {
   const childId = g('child-select').value; if (!childId) return;
   db.collection('utilisateurs').doc(childId).update({
-    montantFixe: Number(g('set-fixe').value), montantPrerequis: Number(g('set-prerequis').value), montantBonus: Number(g('set-scolaire').value), minScolaire: Number(g('set-min-scolaire').value)
+    montantFixe: Number(g('set-fixe').value), montantPrerequis: Number(g('set-prerequis').value), montantBonus: Number(g('set-scolaire').value), minScolaire: Number(g('set-min-scolaire').value), heureSemaine: g('set-heure-semaine').value,
+    heureWeekend: g('set-heure-weekend').value
   }).then(() => { alert("Réglages mis à jour !"); selectChild(childId); });
 }
 
