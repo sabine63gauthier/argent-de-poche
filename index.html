@@ -162,7 +162,9 @@
     }
     function g(id) { return document.getElementById(id); }
     function toggleView(id, show) { g(id).classList.toggle('hidden', !show); }
-    function toggleHelp(show) { toggleView('help-modal', !show); }
+    
+    // Correction ici : changement de !show à show pour ouvrir proprement le modal
+    function toggleHelp(show) { toggleView('help-modal', show); }
 
     function getWeekType() {
       const d = new Date();
