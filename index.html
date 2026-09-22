@@ -7,9 +7,35 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+  :root {
+    --beigelin: #EAE3D2;
+    --sabledore: #D6CDA4;
+    --kakipastel: #B4C4A8;
+    --nuderose: #DBCBB6;
+    --taupeclair: #C2B09B;
+    --marroncafe: #A9907E;
+  }
+</style>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          beigelin: 'var(--beigelin)',
+          sabledore: 'var(--sabledore)',
+          kakipastel: 'var(--kakipastel)',
+          nuderosé: 'var(--nuderose)',
+          taupeclair: 'var(--taupeclair)',
+          marroncafe: 'var(--marroncafe)'
+        }
+      }
+    }
+  }
+</script>
 </head>
-<body class="bg-gray-100 min-h-screen p-4 flex justify-center items-start">
-  <div class="w-full max-w-md bg-white p-6 rounded-2xl shadow-md">
+<body class="bg-beigelin min-h-screen p-4 flex justify-center items-start text-marroncafe">
+  <div class="w-full max-w-md bg-nuderose p-6 rounded-2xl shadow-md border border-taupeclair">
     <!-- CONNEXION -->
     <div id="login-card" class="block">
       <h2 class="text-2xl font-bold mb-4 text-center text-blue-600">Connexion</h2>
