@@ -84,7 +84,7 @@
     </div>
   </div>
 
-  <!-- ELEMENT CLÔTURE UNIQUE (Déplacé dynamiquement en JS) -->
+  <!-- ELEMENT CLÔTURE UNIQUE -->
   <div id="cloture-card" class="hidden bg-yellow-50 p-4 rounded-xl border border-yellow-200 space-y-3">
     <h3 class="font-bold text-yellow-800 text-sm">PROPOSITION DE CLÔTURE</h3>
     <div class="text-xs text-gray-700 space-y-1">
@@ -342,6 +342,9 @@
             const rawDate = cl.date ? cl.date.toDate() : new Date();
             const dateStr = rawDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
             
+            // Titre personnalisé ou date par défaut
+            const titreAffiche = cl.titre || `Semaine du ${dateStr}`;
+            
             let detailsHtml = '';
             if (cl.details && cl.details.length > 0) {
               detailsHtml = '<div class="mt-2 space-y-1 border-t border-yellow-200 pt-2">';
@@ -353,10 +356,18 @@
               detailsHtml += '</div>';
             }
 
+            // Boutons d'édition réservés au parent
+            const actionHtml = (userRole === 'parent') ? `
+              <div class="flex justify-end space-x-2 border-t pt-1 mt-2 text-[10px]">
+                <button onclick="modifierCloture('${doc.id}')" class="text-blue-600 font-bold">✏️ Modifier</button>
+                <button onclick="supprimerCloture('${doc.id}')" class="text-red-600 font-bold">🗑️ Supprimer</button>
+              </div>
+            ` : '';
+
             list.innerHTML += `
               <details class="p-3 bg-yellow-50 rounded-lg border border-yellow-100 text-xs">
                 <summary class="flex justify-between font-bold text-yellow-800 cursor-pointer outline-none">
-                  <span>Semaine du ${dateStr}</span>
+                  <span>${titreAffiche}</span>
                   <span class="flex items-center">${cl.totalGagne} € <span class="ml-1 text-[10px] text-yellow-600">▼</span></span>
                 </summary>
                 <div class="text-[10px] text-gray-600 space-y-0.5 mt-2 pt-2 border-t border-yellow-200">
@@ -365,11 +376,41 @@
                   <p>Bonus Scolaire : ${cl.scolaireAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>
                   ${cl.commentaire ? `<p class="italic text-gray-500 mt-1">💬 "${cl.commentaire}"</p>` : ''}
                   ${detailsHtml}
+                  ${actionHtml}
                 </div>
               </details>
             `;
           });
         });
+    }
+
+    function modifierCloture(clotureId) {
+      const childId = g('child-select').value;
+      const ref = db.collection('utilisateurs').doc(childId).collection('clotures').doc(clotureId);
+      ref.get().then(doc => {
+        if (!doc.exists) return;
+        const cl = doc.data();
+        const nTitre = prompt("Renommer la semaine (ex: Semaine du DD/MM) :", cl.titre || "");
+        if (nTitre === null) return;
+        const nMontant = prompt("Modifier le montant total gagné (€) :", cl.totalGagne);
+        if (nMontant === null) return;
+        const nComm = prompt("Modifier le commentaire de clôture :", cl.commentaire || "");
+        if (nComm === null) return;
+
+        ref.update({
+          titre: nTitre,
+          totalGagne: Number(nMontant),
+          commentaire: nComm
+        }).then(() => alert("Modifications enregistrées !"));
+      });
+    }
+
+    function supprimerCloture(clotureId) {
+      if (confirm("Supprimer définitivement cette semaine de l'historique ?")) {
+        const childId = g('child-select').value;
+        db.collection('utilisateurs').doc(childId).collection('clotures').doc(clotureId).delete()
+          .then(() => alert("Semaine supprimée !"));
+      }
     }
 
     function addPoint(type, val) {
