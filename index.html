@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -43,7 +43,12 @@
           <p id="child-breakdown" class="text-[11px] text-gray-500 mt-1 font-medium">🎓 0 | 🔵 0 | 🔴 0</p>
         </div>
         
-        <!-- Slot pour la clôture dynamique en haut -->
+        <!-- DEMANDES EN ATTENTE DU PARENT -->
+        <div id="pending-requests-card" class="hidden bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-2">
+          <h3 class="font-bold text-purple-800 text-xs">⏳ DEMANDES EN ATTENTE</h3>
+          <div id="pending-list" class="space-y-2"></div>
+        </div>
+
         <div id="cloture-top-slot"></div>
 
         <!-- AJOUT D'ÉVÉNEMENT -->
@@ -65,6 +70,17 @@
           <h3 id="my-total" class="text-3xl font-bold text-blue-700">0</h3>
           <p id="my-breakdown" class="text-[11px] text-gray-500 mt-1 font-medium">🎓 0 | 🔵 0 | 🔴 0</p>
         </div>
+
+        <!-- PROPOSER UN EFFORT (ENFANT) -->
+        <div class="bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-2">
+          <h4 class="font-bold text-purple-900 text-xs">PROPOSER UN EFFORT</h4>
+          <select id="child-type" class="w-full p-2 border rounded-lg bg-white text-xs">
+            <option value="scolaire">Effort Scolaire</option>
+            <option value="autre">Autre Effort</option>
+          </select>
+          <input id="child-comment" type="text" placeholder="Qu'as-tu fait ? (ex: Devoirs faits...)" class="w-full p-2 border rounded-lg text-xs bg-white">
+          <button onclick="proposerPoint()" class="w-full bg-purple-600 text-white p-2 rounded-lg text-xs font-bold">Envoyer ma proposition</button>
+        </div>
       </div>
 
       <!-- ACTIVITÉS EN COURS -->
@@ -73,7 +89,6 @@
         <div id="events-list" class="space-y-4"></div>
       </div>
 
-      <!-- Slot pour la clôture dynamique en bas -->
       <div id="cloture-bottom-slot" class="mt-4"></div>
 
       <!-- HISTORIQUE DES CLÔTURES -->
@@ -84,39 +99,18 @@
     </div>
   </div>
 
-  <!-- ELEMENT CLÔTURE UNIQUE -->
-  <div id="cloture-card" class="hidden bg-yellow-50 p-4 rounded-xl border border-yellow-200 space-y-3">
-    <h3 class="font-bold text-yellow-800 text-sm">PROPOSITION DE CLÔTURE</h3>
-    <div class="text-xs text-gray-700 space-y-1">
-      <p>🎓 Efforts scolaires : <span id="stat-scolaires" class="font-bold">0</span>/3</p>
-      <p>💶 Fixe : <span class="font-bold">5 €</span></p>
-    </div>
-    <div class="space-y-2 text-xs">
-      <label class="flex items-center space-x-2">
-        <input type="checkbox" id="check-prerequis" class="rounded">
-        <span>Accorder 5 € de prérequis (Total ≥ 0)</span>
-      </label>
-      <label class="flex items-center space-x-2">
-        <input type="checkbox" id="check-scolaire" class="rounded">
-        <span>Accorder 5 € de bonus scolaire (Scolaires ≥ 3)</span>
-      </label>
-      <input id="parent-comment" type="text" placeholder="Commentaire final de clôture..." class="w-full p-2 border rounded bg-white">
-    </div>
-    <button onclick="validerSemaine()" class="w-full bg-yellow-600 text-white p-2 rounded-lg text-xs font-bold">VALIDER DÉFINITIVEMENT</button>
-  </div>
-
   <!-- MODAL D'AIDE LUDIQUE -->
   <div id="help-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl max-w-sm w-full space-y-4 text-center">
       <h3 class="text-xl font-bold text-blue-600">🎯 Règles du Jeu !</h3>
       <div class="space-y-3 text-left text-xs text-gray-700">
         <p class="font-medium text-center text-gray-900">Relève les défis pour remplir ta cagnotte :</p>
-        <p>🎓 <strong>Efforts Scolaires (+1) :</strong> Fais-en au moins 3 pour débloquer ton bonus scolaire de 5 € !</p>
-        <p>🔵 <strong>Autres Efforts (+1) :</strong> Aide à la maison, range ta chambre, vider le lave-vaisselle... pour augmenter ton score !</p>
+        <p>🎓 <strong>Efforts Scolaires (+1) :</strong> Fais-en au moins 3 pour débloquer ton bonus de 5 € !</p>
+        <p>🔵 <strong>Autres Efforts (+1) :</strong> Aide à la maison, range ta chambre... pour augmenter ton score !</p>
         <p>🔴 <strong>Manquements (-1) :</strong> Attention aux manquements qui retirent 1 point à ton total.</p>
         <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
           <p class="font-bold text-yellow-800">Le Grand Objectif :</p>
-          <p class="mt-1">Garde un score <strong>Total supérieur ou égal à 0</strong> à la fin de la semaine pour obtenir tes 5 € de prérequis !</p>
+          <p class="mt-1">Garde un score <strong>Total supérieur ou égal à 0</strong> pour obtenir tes 5 € de prérequis !</p>
         </div>
       </div>
       <button onclick="toggleHelp(false)" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold text-xs">J'AI COMPRIS, C'EST PARTI !</button>
@@ -171,10 +165,8 @@
       const now = new Date();
       const isSundayNight = (now.getDay() === 0 && now.getHours() >= 20);
       const targetSlot = isSundayNight ? 'cloture-top-slot' : 'cloture-bottom-slot';
-      
-      const card = g('cloture-card');
-      card.classList.remove('hidden');
-      g(targetSlot).appendChild(card);
+      g(targetSlot).appendChild(g('cloture-card'));
+      g('cloture-card').classList.remove('hidden');
     }
 
     function loadUser() {
@@ -251,16 +243,31 @@
       unsubEvents = db.collection('utilisateurs').doc(childId).collection('evenements').orderBy('date', 'desc')
         .onSnapshot(snap => {
           activeNetTotal = 0; activeScolaire = 0; activeAutre = 0; activeManque = 0;
-          let scolHtml = '', autrHtml = '', manqHtml = '';
+          let scolHtml = '', autrHtml = '', manqHtml = '', pendingHtml = '';
           
           snap.forEach(doc => {
             const ev = doc.data();
             if (ev.cloture) return;
             
-            activeNetTotal += ev.valeur;
-            if (ev.type === 'scolaire') activeScolaire++;
-            else if (ev.type === 'manquement') activeManque++;
-            else activeAutre++;
+            // Gestion de l'affichage des demandes en attente pour le Parent
+            if (ev.status === 'en_attente') {
+              pendingHtml += `
+                <div class="p-2 bg-white rounded-lg border border-purple-100 flex justify-between items-center text-xs">
+                  <span><strong>[${ev.type === 'scolaire' ? 'Scolaire' : 'Autre'}]</strong> ${ev.commentaire}</span>
+                  <div class="flex space-x-1">
+                    <button onclick="traiterDemande('${doc.id}', 'valide')" class="bg-green-500 text-white px-2 py-1 rounded text-[10px] font-bold">✅</button>
+                    <button onclick="traiterDemande('${doc.id}', 'refuse')" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold">❌</button>
+                  </div>
+                </div>`;
+            }
+
+            // Un point en attente ou refusé n'affecte pas le solde hebdomadaire actif
+            if (ev.status !== 'en_attente' && ev.status !== 'refuse') {
+              activeNetTotal += ev.valeur;
+              if (ev.type === 'scolaire') activeScolaire++;
+              else if (ev.type === 'manquement') activeManque++;
+              else activeAutre++;
+            }
             
             const rawDate = ev.date ? ev.date.toDate() : new Date();
             let dateStr = '';
@@ -272,10 +279,19 @@
             }
             
             const color = ev.valeur > 0 ? (ev.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600';
+            
+            // Badges d'état pour les propositions de l'enfant
+            let badgeEtat = '';
+            if (ev.proposeParEnfant) {
+              if (ev.status === 'en_attente') badgeEtat = ' <span class="text-purple-600 font-bold">[⏳ En attente]</span>';
+              else if (ev.status === 'refuse') badgeEtat = ' <span class="text-red-500 font-bold">[❌ Refusé]</span>';
+              else if (ev.status === 'valide') badgeEtat = ' <span class="text-green-500 font-bold">[✅ Validé]</span>';
+            }
+
             const badge = ev.desaccord ? `<div class="text-orange-500 font-semibold mt-1">🟠 Contesté : "${ev.commEnfant}"</div>` : '';
             const replyHtml = ev.reponseParent ? `<div class="text-gray-500 italic mt-1">💬 Décision : "${ev.reponseParent}"</div>` : '';
             
-            const actionBtn = (!ev.desaccord && userRole === 'enfant') ? `<button onclick="contester('${doc.id}')" class="text-red-500 underline ml-2 font-bold">Contester</button>` : '';
+            const actionBtn = (!ev.desaccord && userRole === 'enfant' && ev.status !== 'en_attente' && ev.status !== 'refuse') ? `<button onclick="contester('${doc.id}')" class="text-red-500 underline ml-2 font-bold">Contester</button>` : '';
             const replyBtn = (ev.desaccord && userRole === 'parent') ? `<button onclick="repondreContestation('${doc.id}')" class="text-blue-600 underline ml-2 font-bold">✍️ Répondre</button>` : '';
             const deleteBtn = (userRole === 'parent') ? `<button onclick="supprimerPoint('${doc.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
 
@@ -283,7 +299,7 @@
 
             const itemHtml = `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs flex justify-between items-center">
               <div>
-                <span><strong>${labelCategorie}${ev.commentaire}</strong> ${actionBtn} ${replyBtn}</span>
+                <span><strong>${labelCategorie}${ev.commentaire}</strong>${badgeEtat} ${actionBtn} ${replyBtn}</span>
                 <span class="text-gray-400 block text-[10px]">${dateStr}</span>
                 ${badge}
                 ${replyHtml}
@@ -321,6 +337,8 @@
             g('stat-scolaires').innerText = activeScolaire;
             g('check-prerequis').checked = activeNetTotal >= 0;
             g('check-scolaire').checked = activeScolaire >= 3;
+            g('pending-list').innerHTML = pendingHtml || '<p class="text-gray-400 text-[10px] italic">Aucune demande en attente.</p>';
+            toggleView('pending-requests-card', userRole === 'parent' && pendingHtml !== '');
           } else {
             g('my-breakdown').innerText = detailStr;
           }
@@ -341,8 +359,6 @@
             const cl = doc.data();
             const rawDate = cl.date ? cl.date.toDate() : new Date();
             const dateStr = rawDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-            
-            // Titre personnalisé ou date par défaut
             const titreAffiche = cl.titre || `Semaine du ${dateStr}`;
             
             let detailsHtml = '';
@@ -356,13 +372,11 @@
               detailsHtml += '</div>';
             }
 
-            // Boutons d'édition réservés au parent
             const actionHtml = (userRole === 'parent') ? `
               <div class="flex justify-end space-x-2 border-t pt-1 mt-2 text-[10px]">
                 <button onclick="modifierCloture('${doc.id}')" class="text-blue-600 font-bold">✏️ Modifier</button>
                 <button onclick="supprimerCloture('${doc.id}')" class="text-red-600 font-bold">🗑️ Supprimer</button>
-              </div>
-            ` : '';
+              </div>` : '';
 
             list.innerHTML += `
               <details class="p-3 bg-yellow-50 rounded-lg border border-yellow-100 text-xs">
@@ -378,8 +392,7 @@
                   ${detailsHtml}
                   ${actionHtml}
                 </div>
-              </details>
-            `;
+              </details>`;
           });
         });
     }
@@ -390,27 +403,50 @@
       ref.get().then(doc => {
         if (!doc.exists) return;
         const cl = doc.data();
-        const nTitre = prompt("Renommer la semaine (ex: Semaine du DD/MM) :", cl.titre || "");
+        const nTitre = prompt("Renommer la semaine :", cl.titre || "");
         if (nTitre === null) return;
         const nMontant = prompt("Modifier le montant total gagné (€) :", cl.totalGagne);
         if (nMontant === null) return;
-        const nComm = prompt("Modifier le commentaire de clôture :", cl.commentaire || "");
+        const nComm = prompt("Modifier le commentaire :", cl.commentaire || "");
         if (nComm === null) return;
 
-        ref.update({
-          titre: nTitre,
-          totalGagne: Number(nMontant),
-          commentaire: nComm
-        }).then(() => alert("Modifications enregistrées !"));
+        ref.update({ titre: nTitre, totalGagne: Number(nMontant), commentaire: nComm })
+          .then(() => alert("Modifications enregistrées !"));
       });
     }
 
     function supprimerCloture(clotureId) {
-      if (confirm("Supprimer définitivement cette semaine de l'historique ?")) {
+      if (confirm("Supprimer de l'historique ?")) {
         const childId = g('child-select').value;
-        db.collection('utilisateurs').doc(childId).collection('clotures').doc(clotureId).delete()
-          .then(() => alert("Semaine supprimée !"));
+        db.collection('utilisateurs').doc(childId).collection('clotures').doc(clotureId).delete();
       }
+    }
+
+    function proposerPoint() {
+      const type = g('child-type').value;
+      const comm = g('child-comment').value;
+      if (!comm) return alert("Précise ce que tu as accompli !");
+      db.collection('utilisateurs').doc(currentUser.uid).collection('evenements').add({
+        type: type,
+        categorie: type === 'scolaire' ? 'Scolaire' : 'Autre',
+        commentaire: comm,
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+        valeur: 1,
+        desaccord: false,
+        cloture: false,
+        status: 'en_attente',
+        proposeParEnfant: true
+      }).then(() => {
+        g('child-comment').value = '';
+        alert("Proposition envoyée !");
+      });
+    }
+
+    function traiterDemande(eventId, statut) {
+      const childId = g('child-select').value;
+      db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).update({
+        status: statut
+      });
     }
 
     function addPoint(type, val) {
