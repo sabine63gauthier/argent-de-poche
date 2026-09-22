@@ -113,7 +113,7 @@ function selectChild(id) {
 }
 
 function sauvegarderReglages() {
-  const childId = g('child-select').value; if (!childId) return;
+  const childId = selectedChildId; if (!childId) return;
   db.collection('utilisateurs').doc(childId).update({
     montantFixe: Number(g('set-fixe').value), montantPrerequis: Number(g('set-prerequis').value), montantBonus: Number(g('set-scolaire').value), minScolaire: Number(g('set-min-scolaire').value), heureSemaine: g('set-heure-semaine').value,
     heureWeekend: g('set-heure-weekend').value
@@ -206,7 +206,7 @@ function listenClotures(childId) {
 }
 
 function modifierCloture(clotureId) {
-  const childId = g('child-select').value; const ref = db.collection('utilisateurs').doc(childId).collection('clotures').doc(clotureId);
+  const childId = selectedChildId; const ref = db.collection('utilisateurs').doc(childId).collection('clotures').doc(clotureId);
   ref.get().then(doc => {
     if (!doc.exists) return; const cl = doc.data(); const nTitre = prompt("Renommer la semaine :", cl.titre || ""); if (nTitre === null) return; const nMontant = prompt("Modifier le montant :", cl.totalGagne); if (nMontant === null) return; const nComm = prompt("Modifier le commentaire :", cl.commentaire || ""); if (nComm === null) return;
     ref.update({ titre: nTitre, totalGagne: Number(nMontant), commentaire: nComm }).then(() => alert("Enregistré !"));
@@ -214,7 +214,7 @@ function modifierCloture(clotureId) {
 }
 
 function supprimerCloture(clotureId) {
-  if (confirm("Supprimer ?")) { const childId = g('child-select').value; db.collection('utilisateurs').doc(childId).collection('clotures').doc(clotureId).delete(); }
+  if (confirm("Supprimer ?")) { const childId = selectedChildId; db.collection('utilisateurs').doc(childId).collection('clotures').doc(clotureId).delete(); }
 }
 
 function ouvrirProposition(type) {
@@ -228,11 +228,11 @@ function ouvrirProposition(type) {
 }
 
 function traiterDemande(eventId, statut) {
-  const childId = g('child-select').value; db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).update({ status: statut });
+  const childId = selectedChildId; db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).update({ status: statut });
 }
 
 function addPoint(type, val) {
-  const childId = g('child-select').value; const cat = g('category-select').value; const comm = g('comment').value; if (!childId) return;
+  const childId = selectedChildId; const cat = g('category-select').value; const comm = g('comment').value; if (!childId) return;
   db.collection('utilisateurs').doc(childId).collection('evenements').add({
     type: type, categorie: cat || (type === 'scolaire' ? 'Scolaire' : type === 'autre' ? 'Autre' : 'Manquement'), commentaire: comm || (type === 'scolaire' ? 'Effort scolaire' : type === 'autre' ? 'Autre effort' : 'Manquement'), date: firebase.firestore.FieldValue.serverTimestamp(), valeur: val, desaccord: false, cloture: false
   }).then(() => { g('comment').value = ''; g('category-select').value = ''; });
@@ -246,16 +246,16 @@ function contester(eventId) {
 function repondreContestation(eventId) {
   const explication = prompt("Expliquez votre décision :");
   if (explication !== null) {
-    const childId = g('child-select').value; db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).update({ desaccord: false, reponseParent: explication });
+    const childId = selectedChildId; db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).update({ desaccord: false, reponseParent: explication });
   }
 }
 
 function supprimerPoint(eventId) {
-  if (confirm("Voulez-vous supprimer ?")) { const childId = g('child-select').value; db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).delete(); }
+  if (confirm("Voulez-vous supprimer ?")) { const childId = selectedChildId; db.collection('utilisateurs').doc(childId).collection('evenements').doc(eventId).delete(); }
 }
 
 function validerSemaine() {
-  const childId = g('child-select').value;
+  const childId = selectedChildId;
   if (!childId) return;
   
   // Double confirmation de sécurité
@@ -307,7 +307,7 @@ function appliquerTheme(data) {
 
 function annulerCloture(clotureId) {
   if (!confirm("Voulez-vous annuler cette clôture ? Tous les points archivés de cette semaine vont revenir dans les activités en cours !")) return;
-  const childId = g('child-select').value;
+  const childId = selectedChildId;
   
   // 1. Récupérer les événements liés à cette clôture précise
   db.collection('utilisateurs').doc(childId).collection('evenements').where('clotureId', '==', clotureId).get()
