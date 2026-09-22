@@ -47,7 +47,7 @@ function loadUser() {
   g('week-type').innerText = getWeekType();
   db.collection('utilisateurs').doc(currentUser.uid).get().then(doc => {
     if (doc.exists) {
-      const data = doc.data(); userRole = data.role; g('user-title').innerText = data.prenom;
+      const data = doc.data(); appliquerTheme(data); userRole = data.role; g('user-title').innerText = data.prenom;
       if (userRole === 'parent') {
         toggleView('parent-view', true); loadChildren(); initCategories(); updateCloturePosition();
       } else {
@@ -104,7 +104,7 @@ function loadChildren() {
 
 function selectChild(id) {
   db.collection('utilisateurs').doc(id).get().then(doc => {
-    const data = doc.data() || {}; applyReglages(data);
+    const data = doc.data() || {}; appliquerTheme(data); applyReglages(data);
     g('set-fixe').value = childFixe; g('set-prerequis').value = childPrerequis; g('set-scolaire').value = childScolaireBonus; g('set-min-scolaire').value = childMinScolaire;
     g('set-heure-semaine').value = childHeureSemaine;
     g('set-heure-weekend').value = childHeureWeekend;
@@ -250,3 +250,14 @@ function validerSemaine() {
       });
     });
 }
+
+function appliquerTheme(data) {
+  const r = document.documentElement.style;
+  r.setProperty('--beigelin', data.couleurBase || '#EAE3D2');
+  r.setProperty('--sabledore', data.couleurSable || '#D6CDA4');
+  r.setProperty('--kakipastel', data.couleurKaki || '#B4C4A8');
+  r.setProperty('--nuderose', data.couleurNude || '#DBCBB6');
+  r.setProperty('--taupeclair', data.couleurTaupe || '#C2B09B');
+  r.setProperty('--marroncafe', data.couleurMarron || '#A9907E');
+}
+
