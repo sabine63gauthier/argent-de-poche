@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -43,7 +43,6 @@
           <p id="child-breakdown" class="text-[11px] text-gray-500 mt-1 font-medium">🎓 0 | 🔵 0 | 🔴 0</p>
         </div>
         
-        <!-- DEMANDES EN ATTENTE DU PARENT -->
         <div id="pending-requests-card" class="hidden bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-2">
           <h3 class="font-bold text-purple-800 text-xs">⏳ DEMANDES EN ATTENTE</h3>
           <div id="pending-list" class="space-y-2"></div>
@@ -70,15 +69,13 @@
           <h3 id="my-total" class="text-3xl font-bold text-blue-700">0</h3>
           <p id="my-breakdown" class="text-[11px] text-gray-500 mt-1 font-medium">🎓 0 | 🔵 0 | 🔴 0</p>
         </div>
-
-        <!-- PROPOSER UN EFFORT (ENFANT) -->
         <div class="bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-2">
           <h4 class="font-bold text-purple-900 text-xs">PROPOSER UN EFFORT</h4>
           <select id="child-type" class="w-full p-2 border rounded-lg bg-white text-xs">
             <option value="scolaire">Effort Scolaire</option>
             <option value="autre">Autre Effort</option>
           </select>
-          <input id="child-comment" type="text" placeholder="Qu'as-tu fait ? (ex: Devoirs faits...)" class="w-full p-2 border rounded-lg text-xs bg-white">
+          <input id="child-comment" type="text" placeholder="Qu'as-tu fait ? (ex: Devoir...)" class="w-full p-2 border rounded-lg text-xs bg-white">
           <button onclick="proposerPoint()" class="w-full bg-purple-600 text-white p-2 rounded-lg text-xs font-bold">Envoyer ma proposition</button>
         </div>
       </div>
@@ -97,6 +94,27 @@
         <div id="clotures-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
       </div>
     </div>
+  </div>
+
+  <!-- ELEMENT CLÔTURE UNIQUE -->
+  <div id="cloture-card" class="hidden bg-yellow-50 p-4 rounded-xl border border-yellow-200 space-y-3">
+    <h3 class="font-bold text-yellow-800 text-sm">PROPOSITION DE CLÔTURE</h3>
+    <div class="text-xs text-gray-700 space-y-1">
+      <p>🎓 Efforts scolaires : <span id="stat-scolaires" class="font-bold">0</span>/3</p>
+      <p>💶 Fixe : <span class="font-bold">5 €</span></p>
+    </div>
+    <div class="space-y-2 text-xs">
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" id="check-prerequis" class="rounded">
+        <span>Accorder 5 € de prérequis (Total ≥ 0)</span>
+      </label>
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" id="check-scolaire" class="rounded">
+        <span>Accorder 5 € de bonus scolaire (Scolaires ≥ 3)</span>
+      </label>
+      <input id="parent-comment" type="text" placeholder="Commentaire final de clôture..." class="w-full p-2 border rounded bg-white">
+    </div>
+    <button onclick="validerSemaine()" class="w-full bg-yellow-600 text-white p-2 rounded-lg text-xs font-bold">VALIDER DÉFINITIVEMENT</button>
   </div>
 
   <!-- MODAL D'AIDE LUDIQUE -->
@@ -125,8 +143,7 @@
     };
     firebase.initializeApp(config);
     const db = firebase.firestore();
-    let currentUser, unsubEvents, unsubClotures, userRole;
-    let activeNetTotal = 0, activeScolaire = 0, activeAutre = 0, activeManque = 0;
+    let currentUser, unsubEvents, unsubClotures, userRole, activeNetTotal = 0, activeScolaire = 0, activeAutre = 0, activeManque = 0;
 
     firebase.auth().onAuthStateChanged(user => {
       currentUser = user;
@@ -165,8 +182,12 @@
       const now = new Date();
       const isSundayNight = (now.getDay() === 0 && now.getHours() >= 20);
       const targetSlot = isSundayNight ? 'cloture-top-slot' : 'cloture-bottom-slot';
-      g(targetSlot).appendChild(g('cloture-card'));
-      g('cloture-card').classList.remove('hidden');
+      const card = g('cloture-card');
+      const slot = g(targetSlot);
+      if (card && slot) {
+        slot.appendChild(card);
+        card.classList.remove('hidden');
+      }
     }
 
     function loadUser() {
@@ -249,7 +270,6 @@
             const ev = doc.data();
             if (ev.cloture) return;
             
-            // Gestion de l'affichage des demandes en attente pour le Parent
             if (ev.status === 'en_attente') {
               pendingHtml += `
                 <div class="p-2 bg-white rounded-lg border border-purple-100 flex justify-between items-center text-xs">
@@ -261,7 +281,6 @@
                 </div>`;
             }
 
-            // Un point en attente ou refusé n'affecte pas le solde hebdomadaire actif
             if (ev.status !== 'en_attente' && ev.status !== 'refuse') {
               activeNetTotal += ev.valeur;
               if (ev.type === 'scolaire') activeScolaire++;
@@ -280,7 +299,6 @@
             
             const color = ev.valeur > 0 ? (ev.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600';
             
-            // Badges d'état pour les propositions de l'enfant
             let badgeEtat = '';
             if (ev.proposeParEnfant) {
               if (ev.status === 'en_attente') badgeEtat = ' <span class="text-purple-600 font-bold">[⏳ En attente]</span>';
@@ -337,7 +355,7 @@
             g('stat-scolaires').innerText = activeScolaire;
             g('check-prerequis').checked = activeNetTotal >= 0;
             g('check-scolaire').checked = activeScolaire >= 3;
-            g('pending-list').innerHTML = pendingHtml || '<p class="text-gray-400 text-[10px] italic">Aucune demande en attente.</p>';
+            g('pending-list').innerHTML = pendingHtml || '<p class="text-gray-400 text-[10px] italic">Aucune demande.</p>';
             toggleView('pending-requests-card', userRole === 'parent' && pendingHtml !== '');
           } else {
             g('my-breakdown').innerText = detailStr;
@@ -405,7 +423,7 @@
         const cl = doc.data();
         const nTitre = prompt("Renommer la semaine :", cl.titre || "");
         if (nTitre === null) return;
-        const nMontant = prompt("Modifier le montant total gagné (€) :", cl.totalGagne);
+        const nMontant = prompt("Modifier le montant gagné (€) :", cl.totalGagne);
         if (nMontant === null) return;
         const nComm = prompt("Modifier le commentaire :", cl.commentaire || "");
         if (nComm === null) return;
@@ -425,7 +443,7 @@
     function proposerPoint() {
       const type = g('child-type').value;
       const comm = g('child-comment').value;
-      if (!comm) return alert("Précise ce que tu as accompli !");
+      if (!comm) return alert("Précise ton effort !");
       db.collection('utilisateurs').doc(currentUser.uid).collection('evenements').add({
         type: type,
         categorie: type === 'scolaire' ? 'Scolaire' : 'Autre',
