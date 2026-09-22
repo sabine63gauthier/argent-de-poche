@@ -128,19 +128,30 @@
 
   <!-- MODAL D'AIDE LUDIQUE -->
   <div id="help-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-    <div class="bg-white p-6 rounded-2xl max-w-sm w-full space-y-4 text-center">
+    <div class="bg-white p-6 rounded-2xl max-w-sm w-full space-y-4 text-center max-h-[85vh] overflow-y-auto">
       <h3 class="text-xl font-bold text-blue-600">🎯 Règles du Jeu !</h3>
       <div class="space-y-3 text-left text-xs text-gray-700">
-        <p class="font-medium text-center text-gray-900">Relève les défis pour remplir ta cagnotte :</p>
+        <p class="font-bold text-center text-gray-900 bg-blue-50 py-1.5 rounded-lg">Cagnotte de base : <span id="help-text-fixe" class="font-bold">5</span> € / semaine</p>
+        
         <p>🎓 <strong>Efforts Scolaires (+1) :</strong> Fais-en au moins <span id="help-text-min-scol" class="font-bold">3</span> pour débloquer ton bonus de <span id="help-text-bonus-scol" class="font-bold">5</span> € !</p>
-        <p>🔵 <strong>Autres Efforts (+1) :</strong> Aide à la maison, range ta chambre... pour augmenter ton score !</p>
-        <p>🔴 <strong>Manquements (-1) :</strong> Attention aux manquements qui retirent 1 point à ton total.</p>
-        <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+        
+        <p>🔵 <strong>Autres Efforts (+1) :</strong> Lave-vaisselle vidé avant l'école, laver la salle de bain, étendre la lessive, etc. pour augmenter ton score !</p>
+        
+        <p>🔴 <strong>Manquements (-1) :</strong> Retire 1 point à ton total.</p>
+        
+        <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200 space-y-1">
           <p class="font-bold text-yellow-800">Le Grand Objectif :</p>
-          <p class="mt-1">Garde un score <strong>Total supérieur ou égal à 0</strong> pour obtenir tes <span id="help-text-prerequis" class="font-bold">5</span> € de prérequis !</p>
+          <p class="text-[10px]">Respecte les prérequis pour obtenir tes <span id="help-text-prerequis" class="font-bold">5</span> € de prérequis (Total ≥ 0) :</p>
+          <ul class="list-disc pl-4 text-[10px] text-gray-600 mt-1 space-y-0.5">
+            <li>Douche, cartable et table mis avant 20h</li>
+            <li>Chambre rangée une fois par semaine</li>
+            <li>Débarrasser la table & devoirs faits</li>
+            <li>Linge sale mis dans le panier</li>
+            <li>Brossage des dents & demandes ponctuelles respectées</li>
+          </ul>
         </div>
       </div>
-      <button onclick="toggleHelp(false)" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold text-xs">J'AI COMPRIS, C'EST PARTI !</button>
+      <button onclick="toggleHelp(false)" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold text-xs">J'AI COMPRIS !</button>
     </div>
   </div>
 
