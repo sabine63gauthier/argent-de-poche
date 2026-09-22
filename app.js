@@ -150,7 +150,7 @@ function listenEvents(childId, totalElementId) {
       snap.forEach(doc => {
         const ev = doc.data(); if (ev.cloture) return;
         if (ev.status === 'en_attente') {
-          pendingHtml += `<div class="p-2 bg-white rounded-lg border border-purple-100 flex justify-between items-center text-xs"><span><strong>[${ev.type === 'scolaire' ? 'Scolaire' : 'Autre'}]</strong> ${ev.commentaire}</span><div class="flex space-x-1"><button onclick="traiterDemande('${doc.id}', 'valide')" class="bg-green-500 text-white px-2 py-1 rounded text-[10px] font-bold">✅</button><button onclick="traiterDemande('${doc.id}', 'refuse')" class="bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold">❌</button></div></div>`;
+          pendingHtml += `<div class="p-2 bg-white rounded-lg border border-purple-100 flex justify-between items-center text-xs"><span><strong>[${ev.type === 'scolaire' ? 'Scolaire' : 'Autre'}]</strong> ${ev.commentaire}</span><div class="flex space-x-1"><button onclick="traiterDemande('${doc.id}', 'valide')" class="bg-green-500 text-white px-2 py-1 rounded text-[14px] font-bold">✅</button><button onclick="traiterDemande('${doc.id}', 'refuse')" class="bg-red-500 text-white px-2 py-1 rounded text-[14px] font-bold">❌</button></div></div>`;
         }
         if (ev.status !== 'en_attente' && ev.status !== 'refuse') {
           activeNetTotal += ev.valeur;
@@ -171,27 +171,27 @@ function listenEvents(childId, totalElementId) {
         const replyBtn = (ev.desaccord && userRole === 'parent') ? `<button onclick="repondreContestation('${doc.id}')" class="text-blue-600 underline ml-2 font-bold">✍️ Répondre</button>` : '';
         const deleteBtn = (userRole === 'parent') ? `<button onclick="supprimerPoint('${doc.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
         const labelCategorie = ev.categorie ? `[${ev.categorie}] ` : '';
-        const itemHtml = `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs flex justify-between items-center"><div><span><strong>${labelCategorie}${ev.commentaire}</strong>${badgeEtat} ${actionBtn} ${replyBtn}</span><span class="text-gray-400 block text-[10px]">${dateStr}</span>${badge}${replyHtml}</div><div class="flex items-center"><span class="${color} font-bold">${ev.valeur > 0 ? '+' : ''}${ev.valeur}</span>${deleteBtn}</div></div>`;
+        const itemHtml = `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs flex justify-between items-center"><div><span><strong>${labelCategorie}${ev.commentaire}</strong>${badgeEtat} ${actionBtn} ${replyBtn}</span><span class="text-gray-400 block text-[14px]">${dateStr}</span>${badge}${replyHtml}</div><div class="flex items-center"><span class="${color} font-bold">${ev.valeur > 0 ? '+' : ''}${ev.valeur}</span>${deleteBtn}</div></div>`;
         if (ev.type === 'scolaire') scolHtml += itemHtml; else if (ev.type === 'manquement') manqHtml += itemHtml; else autrHtml += itemHtml; 
       });
      g('events-list').innerHTML = `
   <div class="space-y-1">
     <p class="font-bold text-green-700 text-xs">🎓 Efforts Scolaires</p>
-    ${scolHtml || '<p class="text-gray-400 text-[10px] italic">Aucun effort.</p>'}
+    ${scolHtml || '<p class="text-gray-400 text-[14px] italic">Aucun effort.</p>'}
   </div>
   <div class="space-y-1 mt-3">
     <p class="font-bold text-blue-700 text-xs">🚀 Autres Efforts</p> <!-- Remplacé 🔵 par 🚀 -->
-    ${autrHtml || '<p class="text-gray-400 text-[10px] italic">Aucun autre effort.</p>'}
+    ${autrHtml || '<p class="text-gray-400 text-[14px] italic">Aucun autre effort.</p>'}
   </div>
   <div class="space-y-1 mt-3">
     <p class="font-bold text-red-700 text-xs">😈 Manquements</p> <!-- Remplacé 🔴 par 😈 -->
-    ${manqHtml || '<p class="text-gray-400 text-[10px] italic">Aucun manquement.</p>'}
+    ${manqHtml || '<p class="text-gray-400 text-[14px] italic">Aucun manquement.</p>'}
   </div>
 `;
       g(totalElementId).innerText = activeNetTotal;
       const detailStr = `🎓 ${activeScolaire} | 🚀 ${activeAutre} | 😈 ${activeManque}`; // Remplacé 🔵 et 🔴
       if (userRole === 'parent') {
-        g('child-breakdown').innerText = detailStr; g('stat-scolaires').innerText = activeScolaire; g('stat-requis').innerText = childMinScolaire; g('stat-fixe').innerText = childFixe; g('stat-prerequis-val').innerText = childPrerequis; g('stat-scolaire-val').innerText = childScolaireBonus; g('check-prerequis').checked = activeNetTotal >= 0; g('check-scolaire').checked = activeScolaire >= childMinScolaire; g('pending-list').innerHTML = pendingHtml || '<p class="text-gray-400 text-[10px] italic">Aucune demande.</p>'; toggleView('pending-requests-card', userRole === 'parent' && pendingHtml !== '');
+        g('child-breakdown').innerText = detailStr; g('stat-scolaires').innerText = activeScolaire; g('stat-requis').innerText = childMinScolaire; g('stat-fixe').innerText = childFixe; g('stat-prerequis-val').innerText = childPrerequis; g('stat-scolaire-val').innerText = childScolaireBonus; g('check-prerequis').checked = activeNetTotal >= 0; g('check-scolaire').checked = activeScolaire >= childMinScolaire; g('pending-list').innerHTML = pendingHtml || '<p class="text-gray-400 text-[14px] italic">Aucune demande.</p>'; toggleView('pending-requests-card', userRole === 'parent' && pendingHtml !== '');
       } else {
         g('my-breakdown').innerText = detailStr;
         const reachedObj = activeScolaire >= childMinScolaire;
@@ -205,24 +205,24 @@ function listenClotures(childId) {
   unsubClotures = db.collection('utilisateurs').doc(childId).collection('clotures').orderBy('date', 'desc')
     .onSnapshot(snap => {
       const list = g('clotures-list'); list.innerHTML = '';
-      if (snap.empty) { list.innerHTML = '<p class="text-gray-400 text-[10px] italic">Aucune semaine clôturée.</p>'; return; }
+      if (snap.empty) { list.innerHTML = '<p class="text-gray-400 text-[14px] italic">Aucune semaine clôturée.</p>'; return; }
       snap.forEach(doc => {
         const cl = doc.data(); const rawDate = cl.date ? cl.date.toDate() : new Date(); const dateStr = rawDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); const titreAffiche = cl.titre || `Semaine du ${dateStr}`;
         let detailsHtml = '';
         if (cl.details && cl.details.length > 0) {
           detailsHtml = '<div class="mt-2 space-y-1 border-t border-yellow-200 pt-2">';
           cl.details.forEach(p => {
-            const col = p.valeur > 0 ? (p.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600'; const labelType = p.type ? p.type.toUpperCase() : 'AUTRE'; detailsHtml += `<p class="text-[9px] text-gray-500"><strong>${labelType}</strong> [${p.categorie}] ${p.commentaire} <span class="${col} font-bold">${p.valeur > 0 ? '+' : ''}${p.valeur}</span></p>`;
+            const col = p.valeur > 0 ? (p.type === 'scolaire' ? 'text-green-600' : 'text-blue-600') : 'text-red-600'; const labelType = p.type ? p.type.toUpperCase() : 'AUTRE'; detailsHtml += `<p class="text-[12px] text-gray-500"><strong>${labelType}</strong> [${p.categorie}] ${p.commentaire} <span class="${col} font-bold">${p.valeur > 0 ? '+' : ''}${p.valeur}</span></p>`;
           });
           detailsHtml += '</div>';
         }
         const actionHtml = (userRole === 'parent') ? `
-  <div class="flex justify-end space-x-2 border-t pt-1 mt-2 text-[10px]">
+  <div class="flex justify-end space-x-2 border-t pt-1 mt-2 text-[14px]">
     <button onclick="modifierCloture('${doc.id}')" class="text-blue-600 font-bold">✏️ Modifier</button>
     <button onclick="annulerCloture('${doc.id}')" class="text-yellow-600 font-bold">↩️ Annuler Clôture</button>
     <button onclick="supprimerCloture('${doc.id}')" class="text-red-600 font-bold">🗑️ Supprimer</button>
   </div>` : '';
-        list.innerHTML += `<details class="p-3 bg-yellow-50 rounded-lg border border-yellow-100 text-xs"><summary class="flex justify-between font-bold text-yellow-800 cursor-pointer outline-none"><span>${titreAffiche}</span><span class="flex items-center">${cl.totalGagne} € <span class="ml-1 text-[10px] text-yellow-600">▼</span></span></summary><div class="text-[10px] text-gray-600 space-y-0.5 mt-2 pt-2 border-t border-yellow-200"><p>Total : ${cl.totalNet} | Scolaires : ${cl.scolaires}/3</p><p>Prérequis : ${cl.prerequisAccorde ? '✅ Accordé' : '❌ Non accordé'}</p><p>Bonus Scolaire : ${cl.scolaireAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>${cl.commentaire ? `<p class="italic text-gray-500 mt-1">💬 "${cl.commentaire}"</p>` : ''}${detailsHtml}${actionHtml}</div></details>`;
+        list.innerHTML += `<details class="p-3 bg-yellow-50 rounded-lg border border-yellow-100 text-xs"><summary class="flex justify-between font-bold text-yellow-800 cursor-pointer outline-none"><span>${titreAffiche}</span><span class="flex items-center">${cl.totalGagne} € <span class="ml-1 text-[14px] text-yellow-600">▼</span></span></summary><div class="text-[14px] text-gray-600 space-y-0.5 mt-2 pt-2 border-t border-yellow-200"><p>Total : ${cl.totalNet} | Scolaires : ${cl.scolaires}/3</p><p>Prérequis : ${cl.prerequisAccorde ? '✅ Accordé' : '❌ Non accordé'}</p><p>Bonus Scolaire : ${cl.scolaireAccorde ? '✅ Accordé' : '❌ Non accordé'}</p>${cl.commentaire ? `<p class="italic text-gray-500 mt-1">💬 "${cl.commentaire}"</p>` : ''}${detailsHtml}${actionHtml}</div></details>`;
       });
     });
 }
