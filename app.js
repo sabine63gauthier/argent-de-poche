@@ -64,6 +64,7 @@ function applyReglages(data) {
   g('help-text-min-scol').innerText = childMinScolaire;
   g('help-text-bonus-scol').innerText = childScolaireBonus;
   g('help-text-prerequis').innerText = childPrerequis;
+  g('help-text-fixe').innerText = childFixe; // Liaison dynamique de la cagnotte fixe
 }
 
 function initCategories() {
