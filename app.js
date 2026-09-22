@@ -152,9 +152,22 @@ function listenEvents(childId, totalElementId) {
         const itemHtml = `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 text-xs flex justify-between items-center"><div><span><strong>${labelCategorie}${ev.commentaire}</strong>${badgeEtat} ${actionBtn} ${replyBtn}</span><span class="text-gray-400 block text-[10px]">${dateStr}</span>${badge}${replyHtml}</div><div class="flex items-center"><span class="${color} font-bold">${ev.valeur > 0 ? '+' : ''}${ev.valeur}</span>${deleteBtn}</div></div>`;
         if (ev.type === 'scolaire') scolHtml += itemHtml; else if (ev.type === 'manquement') manqHtml += itemHtml; else autrHtml += itemHtml; 
       });
-      g('events-list').innerHTML = `<div class="space-y-1"><p class="font-bold text-green-700 text-xs">🎓 Efforts Scolaires</p>${scolHtml || '<p class="text-gray-400 text-[10px] italic">Aucun effort.</p>'}</div><div class="space-y-1 mt-3"><p class="font-bold text-blue-700 text-xs">🔵 Autres Efforts</p>${autrHtml || '<p class="text-gray-400 text-[10px] italic">Aucun autre effort.</p>'}</div><div class="space-y-1 mt-3"><p class="font-bold text-red-700 text-xs">🔴 Manquements</p>${manqHtml || '<p class="text-gray-400 text-[10px] italic">Aucun manquement.</p>'}</div>`;
+     g('events-list').innerHTML = `
+  <div class="space-y-1">
+    <p class="font-bold text-green-700 text-xs">🎓 Efforts Scolaires</p>
+    ${scolHtml || '<p class="text-gray-400 text-[10px] italic">Aucun effort.</p>'}
+  </div>
+  <div class="space-y-1 mt-3">
+    <p class="font-bold text-blue-700 text-xs">🚀 Autres Efforts</p> <!-- Remplacé 🔵 par 🚀 -->
+    ${autrHtml || '<p class="text-gray-400 text-[10px] italic">Aucun autre effort.</p>'}
+  </div>
+  <div class="space-y-1 mt-3">
+    <p class="font-bold text-red-700 text-xs">😈 Manquements</p> <!-- Remplacé 🔴 par 😈 -->
+    ${manqHtml || '<p class="text-gray-400 text-[10px] italic">Aucun manquement.</p>'}
+  </div>
+`;
       g(totalElementId).innerText = activeNetTotal;
-      const detailStr = `🎓 ${activeScolaire} | 🔵 ${activeAutre} | 🔴 ${activeManque}`;
+      const detailStr = `🎓 ${activeScolaire} | 🚀 ${activeAutre} | 😈 ${activeManque}`; // Remplacé 🔵 et 🔴
       if (userRole === 'parent') {
         g('child-breakdown').innerText = detailStr; g('stat-scolaires').innerText = activeScolaire; g('stat-requis').innerText = childMinScolaire; g('stat-fixe').innerText = childFixe; g('stat-prerequis-val').innerText = childPrerequis; g('stat-scolaire-val').innerText = childScolaireBonus; g('check-prerequis').checked = activeNetTotal >= 0; g('check-scolaire').checked = activeScolaire >= childMinScolaire; g('pending-list').innerHTML = pendingHtml || '<p class="text-gray-400 text-[10px] italic">Aucune demande.</p>'; toggleView('pending-requests-card', userRole === 'parent' && pendingHtml !== '');
       } else {
