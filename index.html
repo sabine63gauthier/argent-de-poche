@@ -26,7 +26,6 @@
       <div class="flex justify-between items-center mb-4 pb-2 border-b">
         <div class="flex items-center">
           <h2 id="user-title" class="text-xl font-bold text-blue-600">Chargement...</h2>
-          <!-- Bouton d'aide ludique -->
           <button onclick="toggleHelp(true)" class="ml-2 text-base">❓</button>
         </div>
         <div class="flex items-center space-x-3">
@@ -44,26 +43,8 @@
           <p id="child-breakdown" class="text-[11px] text-gray-500 mt-1 font-medium">🎓 0 | 🔵 0 | 🔴 0</p>
         </div>
         
-        <!-- PROPOSITION DE CLÔTURE -->
-        <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200 space-y-3">
-          <h3 class="font-bold text-yellow-800 text-sm">PROPOSITION DE CLÔTURE</h3>
-          <div class="text-xs text-gray-700 space-y-1">
-            <p>🎓 Efforts scolaires : <span id="stat-scolaires" class="font-bold">0</span>/3</p>
-            <p>💶 Fixe : <span class="font-bold">5 €</span></p>
-          </div>
-          <div class="space-y-2 text-xs">
-            <label class="flex items-center space-x-2">
-              <input type="checkbox" id="check-prerequis" class="rounded">
-              <span>Accorder 5 € de prérequis (Total ≥ 0)</span>
-            </label>
-            <label class="flex items-center space-x-2">
-              <input type="checkbox" id="check-scolaire" class="rounded">
-              <span>Accorder 5 € de bonus scolaire (Scolaires ≥ 3)</span>
-            </label>
-            <input id="parent-comment" type="text" placeholder="Commentaire final de clôture..." class="w-full p-2 border rounded bg-white">
-          </div>
-          <button onclick="validerSemaine()" class="w-full bg-yellow-600 text-white p-2 rounded-lg text-xs font-bold">VALIDER DÉFINITIVEMENT</button>
-        </div>
+        <!-- Slot pour la clôture dynamique en haut -->
+        <div id="cloture-top-slot"></div>
 
         <!-- AJOUT D'ÉVÉNEMENT -->
         <div class="space-y-2">
@@ -92,12 +73,36 @@
         <div id="events-list" class="space-y-4"></div>
       </div>
 
+      <!-- Slot pour la clôture dynamique en bas -->
+      <div id="cloture-bottom-slot" class="mt-4"></div>
+
       <!-- HISTORIQUE DES CLÔTURES -->
       <div class="mt-6 border-t pt-4">
         <h4 class="font-bold text-gray-700 mb-2 text-sm">Semaines clôturées</h4>
         <div id="clotures-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
       </div>
     </div>
+  </div>
+
+  <!-- ELEMENT CLÔTURE UNIQUE (Déplacé dynamiquement en JS) -->
+  <div id="cloture-card" class="hidden bg-yellow-50 p-4 rounded-xl border border-yellow-200 space-y-3">
+    <h3 class="font-bold text-yellow-800 text-sm">PROPOSITION DE CLÔTURE</h3>
+    <div class="text-xs text-gray-700 space-y-1">
+      <p>🎓 Efforts scolaires : <span id="stat-scolaires" class="font-bold">0</span>/3</p>
+      <p>💶 Fixe : <span class="font-bold">5 €</span></p>
+    </div>
+    <div class="space-y-2 text-xs">
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" id="check-prerequis" class="rounded">
+        <span>Accorder 5 € de prérequis (Total ≥ 0)</span>
+      </label>
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" id="check-scolaire" class="rounded">
+        <span>Accorder 5 € de bonus scolaire (Scolaires ≥ 3)</span>
+      </label>
+      <input id="parent-comment" type="text" placeholder="Commentaire final de clôture..." class="w-full p-2 border rounded bg-white">
+    </div>
+    <button onclick="validerSemaine()" class="w-full bg-yellow-600 text-white p-2 rounded-lg text-xs font-bold">VALIDER DÉFINITIVEMENT</button>
   </div>
 
   <!-- MODAL D'AIDE LUDIQUE -->
@@ -162,6 +167,16 @@
       return weekNo % 2 === 0 ? "Semaine 1/A" : "Semaine 2/B";
     }
 
+    function updateCloturePosition() {
+      const now = new Date();
+      const isSundayNight = (now.getDay() === 0 && now.getHours() >= 20);
+      const targetSlot = isSundayNight ? 'cloture-top-slot' : 'cloture-bottom-slot';
+      
+      const card = g('cloture-card');
+      card.classList.remove('hidden');
+      g(targetSlot).appendChild(card);
+    }
+
     function loadUser() {
       g('week-type').innerText = getWeekType();
       db.collection('utilisateurs').doc(currentUser.uid).get().then(doc => {
@@ -173,16 +188,17 @@
             toggleView('parent-view', true);
             loadChildren();
             initCategories();
+            updateCloturePosition();
           } else {
             toggleView('child-view', true);
             listenEvents(currentUser.uid, 'my-total');
             listenClotures(currentUser.uid);
           }
         } else {
-          alert("Profil introuvable en base de données.");
+          alert("Profil introuvable.");
           logout();
         }
-      }).catch(e => alert("Erreur d'accès : " + e.message));
+      }).catch(e => alert("Erreur : " + e.message));
     }
 
     function initCategories() {
@@ -326,7 +342,6 @@
             const rawDate = cl.date ? cl.date.toDate() : new Date();
             const dateStr = rawDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
             
-            // Construction des détails des points archivés avec types et couleurs
             let detailsHtml = '';
             if (cl.details && cl.details.length > 0) {
               detailsHtml = '<div class="mt-2 space-y-1 border-t border-yellow-200 pt-2">';
@@ -386,7 +401,6 @@
       }
     }
 
-    // Répondre à une contestation
     function repondreContestation(eventId) {
       const explication = prompt("Expliquez votre décision :");
       if (explication !== null) {
@@ -412,7 +426,6 @@
       const scoVal = g('check-scolaire').checked;
       const comm = g('parent-comment').value;
 
-      // Récupérer tous les points actifs et archiver avec le type d'activité
       db.collection('utilisateurs').doc(childId).collection('evenements').where('cloture', '==', false).get()
         .then(snap => {
           const pointsList = [];
@@ -421,7 +434,6 @@
             pointsList.push({ commentaire: ev.commentaire, valeur: ev.valeur, categorie: ev.categorie, type: ev.type });
           });
 
-          // Création de la clôture
           db.collection('utilisateurs').doc(childId).collection('clotures').add({
             date: firebase.firestore.FieldValue.serverTimestamp(),
             totalNet: activeNetTotal,
