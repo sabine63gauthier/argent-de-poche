@@ -44,12 +44,11 @@ function updateCloturePosition() {
 }
 
 function loadUser() {
-  g('week-type').innerText = getWeekType();
   db.collection('utilisateurs').doc(currentUser.uid).get().then(doc => {
     if (doc.exists) {
       const data = doc.data(); appliquerTheme(data); userRole = data.role; g('user-title').innerText = data.prenom;
       if (userRole === 'parent') {
-        toggleView('parent-settings-btn', true); // 🌟 AFFICHER LE BOUTON REGLAGES
+        toggleView('parent-settings-btn', true); // AFFICHER LE BOUTON REGLAGES
         toggleView('parent-view', true); loadChildren(); initCategories(); updateCloturePosition();
       } else {
         toggleView('child-view', true); applyReglages(data);
