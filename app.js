@@ -51,7 +51,14 @@ function loadUser() {
       if (userRole === 'parent') {
         toggleView('parent-view', true); loadChildren(); initCategories(); updateCloturePosition();
       } else {
-        toggleView('child-view', true); applyReglages(data); listenEvents(currentUser.uid, 'my-total'); listenClotures(currentUser.uid);
+        toggleView('child-view', true); applyReglages(data);
+        
+        // Activer l'alerte de table pour l'enfant connecté
+        const jour = new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase();
+        const wType = getWeekType();
+        toggleView('my-table-duty', doitMettreTable(data.prenom, wType, jour));
+
+        listenEvents(currentUser.uid, 'my-total'); listenClotures(currentUser.uid);
       }
     } else { alert("Profil introuvable."); logout(); }
   }).catch(e => alert("Erreur : " + e.message));
@@ -110,14 +117,21 @@ function renderChildButtons(selectedId) {
   const container = g('child-buttons-container');
   if (!container) return;
   container.innerHTML = '';
+  const jour = new Date().toLocaleDateString('fr-FR', { weekday: 'long' }).toLowerCase();
+  const wType = getWeekType();
+
   childrenList.forEach(child => {
     const isSelected = child.id === selectedId;
     const btnClass = isSelected 
       ? 'bg-kakipastel text-marroncafe font-bold border-2 border-taupeclair shadow-md' 
       : 'bg-white text-gray-400 border border-gray-200';
+    
+    // Afficher la table si c'est son jour
+    const symboleTable = doitMettreTable(child.prenom, wType, jour) ? ' 🍽️' : '';
+
     container.innerHTML += `
       <button onclick="selectChild('${child.id}')" class="${btnClass} flex-1 p-2.5 rounded-xl text-xs transition duration-200">
-        👧 ${child.prenom}
+        ${child.prenom}${symboleTable}
       </button>`;
   });
 }
@@ -346,5 +360,16 @@ function annulerCloture(clotureId) {
       batch.commit().then(() => alert("Clôture annulée ! Les points sont revenus en cours."));
     });
 }
+
+function doitMettreTable(prenom, weekType, jour) {
+  const map = {
+    "Semaine 1/A": { "Marylou": ["lundi", "mardi", "dimanche"], "Juliette": ["mercredi", "jeudi"] },
+    "Semaine 2/B": { "Marylou": ["mardi", "mercredi"], "Juliette": ["lundi", "jeudi", "dimanche"] }
+  };
+  const p = prenom.trim().toLowerCase().includes('mary') ? 'Marylou' : (prenom.trim().toLowerCase().includes('jul') ? 'Juliette' : '');
+  if (!p || !map[weekType] || !map[weekType][p]) return false;
+  return map[weekType][p].includes(jour);
+}
+
 
 
