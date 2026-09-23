@@ -203,13 +203,11 @@ function listenEvents(childId, totalElementId) {
   </div>
 `;
       g(totalElementId).innerText = activeNetTotal;
-      const detailStr = `🎓 ${activeScolaire} | 🚀 ${activeAutre} | 😈 ${activeManque}`; // Remplacé 🔵 et 🔴
+      const detailStr = `🎓 ${activeScolaire}/${childMinScolaire} | 🚀 ${activeAutre} | 😈 ${activeManque}`;
       if (userRole === 'parent') {
-        g('child-breakdown').innerText = detailStr; g('stat-scolaires').innerText = activeScolaire; g('stat-requis').innerText = childMinScolaire; g('stat-fixe').innerText = childFixe; g('stat-prerequis-val').innerText = childPrerequis; g('stat-scolaire-val').innerText = childScolaireBonus; g('check-prerequis').checked = activeNetTotal >= 0; g('check-scolaire').checked = activeScolaire >= childMinScolaire; g('pending-list').innerHTML = pendingHtml || '<p class="text-gray-400 text-[14px] italic">Aucune demande.</p>'; toggleView('pending-requests-card', userRole === 'parent' && pendingHtml !== '');
+        g('child-breakdown').innerText = detailStr; g('stat-scolaires').innerText = activeScolaire; g('stat-requis').innerText = childMinScolaire; g('stat-fixe').innerText = childFixe; g('stat-prerequis-val').innerText = childPrerequis; g('stat-scolaire-val').innerText = childScolaireBonus; g('check-prerequis').checked = activeNetTotal >= 0; g('check-scolaire').checked = activeScolaire >= childMinScolaire; g('pending-list').innerHTML = pendingHtml || '<p class="text-gray-400 text-[10px] italic">Aucune demande.</p>'; toggleView('pending-requests-card', userRole === 'parent' && pendingHtml !== '');
       } else {
         g('my-breakdown').innerText = detailStr;
-        const reachedObj = activeScolaire >= childMinScolaire;
-        g('my-progress').innerHTML = `🎓 Objectif scolaire : <span class="${reachedObj ? 'text-green-600 font-bold' : 'text-orange-500'}">${activeScolaire} / ${childMinScolaire}</span>`;
       }
     });
 }
