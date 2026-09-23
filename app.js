@@ -49,6 +49,7 @@ function loadUser() {
     if (doc.exists) {
       const data = doc.data(); appliquerTheme(data); userRole = data.role; g('user-title').innerText = data.prenom;
       if (userRole === 'parent') {
+        toggleView('parent-settings-btn', true); // 🌟 AFFICHER LE BOUTON REGLAGES
         toggleView('parent-view', true); loadChildren(); initCategories(); updateCloturePosition();
       } else {
         toggleView('child-view', true); applyReglages(data);
@@ -371,5 +372,8 @@ function doitMettreTable(prenom, weekType, jour) {
   return map[weekType][p].includes(jour);
 }
 
+function toggleSettings() {
+  g('child-settings-panel').classList.toggle('hidden');
+}
 
 
