@@ -5,20 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="icon" type="image/png" href="icon.png">
-  <title>Argent de Poche</title>
+  <title>PoOky</title>
+  <meta name="apple-mobile-web-app-title" content="PoOky">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Short+Stack&display=swap');
   
   /* Règle magique pour agrandir proportionnellement tout le texte */
   html {
-    font-size: 20px; 
+    font-size: 21px; 
   }
   
+  /* Police principale de l'application */
   body {
     font-family: 'Patrick Hand', cursive;
+  }
+
+  /* Police 100% enfantine pour le titre PoOky uniquement */
+  .title-childish {
+    font-family: 'Short Stack', cursive;
   }
 
   :root {
@@ -65,7 +73,7 @@
   <div class="w-full max-w-md bg-nuderose p-6 rounded-2xl shadow-md border border-taupeclair">
     <!-- CONNEXION -->
     <div id="login-card" class="block">
-      <h2 class="text-2xl font-bold mb-4 text-center text-blue-600">Connexion</h2>
+      <h2 class="text-4xl font-bold mb-4 text-center text-blue-600 title-childish">PoOky</h2>
       <input id="email" type="email" placeholder="Email" class="w-full p-2 border mb-3 rounded-lg">
       <input id="pass" type="password" placeholder="Mot de passe" class="w-full p-3 border mb-4 rounded-lg">
       <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold">Se connecter</button>
