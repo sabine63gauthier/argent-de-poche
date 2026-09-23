@@ -179,19 +179,19 @@
     <button onclick="validerSemaine()" class="w-full bg-yellow-600 text-white p-2 rounded-lg text-xs font-bold">VALIDER DÉFINITIVEMENT</button>
   </div>
 
-    <!-- MODAL D'AIDE LUDIQUE -->
+      <!-- MODAL D'AIDE LUDIQUE -->
   <div id="help-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
     <div class="bg-white p-6 rounded-2xl max-w-sm w-full space-y-4 text-center max-h-[85vh] overflow-y-auto">
-      <h3 class="text-xl font-bold text-blue-600">💄 Glow Up ton compte banquaire !</h3>
+      <h3 class="text-xl font-bold text-blue-600">💄 Glow Up ton compte en banque !</h3>
 
-      <div class="space-y-3 text-left text-xs text-gray-700">
+      <div class="space-y-3 text-left text-sm text-gray-700">
         <p class="font-bold text-center text-gray-900 bg-blue-50 py-1.5 rounded-lg">Cagnotte de base : <span id="help-text-fixe" class="font-bold">5</span> € / semaine</p>
         
-         <!-- Boîte Manquements & Prérequis sous la cagnotte -->
-        <div class="bg-red-50 p-3 rounded-lg border border-red-200 space-y-1">
-          <p class="font-bold text-red-800">😈 Manquements (-1 point) :</p>
-          <p class="text-[10px]">Conserve tes <span id="help-text-prerequis" class="font-bold">5</span> € de bonus prérequis en respectant simplement les règles de vie de la famille. Tout manquement t'exposera à des points négatifs :</p>
-          <ul class="list-disc pl-4 text-[10px] text-gray-600 mt-1 space-y-0.5">
+         <!-- Section Manquements (Sans encadré et à la même taille d'écriture) -->
+        <div class="space-y-2 py-1">
+          <p class="font-bold text-red-600">😈 Manquements (-1 point) :</p>
+          <p>Conserve tes <span id="help-text-prerequis" class="font-bold">5</span> € de bonus prérequis en respectant simplement les règles de vie de la famille. Tout manquement t'exposera à des points négatifs :</p>
+          <ul class="list-disc pl-5 text-gray-600 mt-1 space-y-1">
             <li>Douche, cartable et table mis avant 20h</li>
             <li>Chambre rangée une fois par semaine</li>
             <li>Débarrasser la table & devoirs faits</li>
@@ -199,14 +199,14 @@
             <li>Brossage des dents & demandes ponctuelles respectées</li>
             <li>Téléphone déposé au salon avant <span id="help-text-heure-semaine" class="font-bold">22h</span> (semaine) et <span id="help-text-heure-weekend" class="font-bold">23h30</span> (week-end)</li>
           </ul>
-          <p class="text-[9px] text-red-700 font-bold mt-2 pt-1 border-t border-red-100">⚠️ Attention : un score Total négatif (score inférieur à 0) à la fin de la semaine annule automatiquement ton bonus prérequis !</p>
+          <p class="text-red-600 font-bold mt-2 pt-1 border-t border-gray-200">⚠️ Attention : un score Total négatif (score inférieur à 0) à la fin de la semaine annule automatiquement ton bonus prérequis !</p>
         </div>
 
         <p>🎓 <strong>Efforts Scolaires (+1) :</strong> Fais-en au moins <span id="help-text-min-scol" class="font-bold">3</span> pour débloquer ton bonus de <span id="help-text-bonus-scol" class="font-bold">5</span> € !</p>
         
         <p>🚀 <strong>Autres Efforts (+1) :</strong> Lave-vaisselle vidé avant l'école, laver la salle de bain, étendre la lessive, etc. pour augmenter ton score !</p>
       </div>
-      <button onclick="toggleHelp(false)" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold text-xs">J'AI COMPRIS !</button>
+      <button onclick="toggleHelp(false)" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold text-sm">J'AI COMPRIS !</button>
     </div>
   </div>
 
