@@ -77,7 +77,8 @@
           <button onclick="toggleHelp(true)" class="ml-2 text-base">✨</button>
         </div>
         <div class="flex items-center space-x-3">
-          <span id="week-type" class="text-[14px] bg-blue-100 text-blue-800 font-bold px-2 py-1 rounded-full">Semaine...</span>
+          <!-- Bouton réglages (⚙️) masqué par défaut, visible pour le parent en JS -->
+          <button id="parent-settings-btn" onclick="toggleSettings()" class="hidden text-xl">⚙️</button>
           <button onclick="logout()" class="text-red-500 font-semibold text-sm">Déconnexion</button>
         </div>
       </div>
@@ -99,19 +100,16 @@
 
         <div id="cloture-top-slot"></div>
 
-        <!-- REGLAGES DE L'ENFANT -->
-        <details class="bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs">
-          <summary class="font-bold text-gray-700 cursor-pointer outline-none">⚙️ RÉGLAGES ET MONTANTS</summary>
-          <div class="space-y-2 mt-2 pt-2 border-t text-gray-600">
-            <div><label class="block mb-1 font-medium">Argent de poche fixe (€)</label><input id="set-fixe" type="number" class="w-full p-1.5 border rounded"></div>
-            <div><label class="block mb-1 font-medium">Bonus prérequis (€)</label><input id="set-prerequis" type="number" class="w-full p-1.5 border rounded"></div>
-            <div><label class="block mb-1 font-medium">Bonus scolaire (€)</label><input id="set-scolaire" type="number" class="w-full p-1.5 border rounded"></div>
-            <div><label class="block mb-1 font-medium">Objectif efforts scolaires requis</label><input id="set-min-scolaire" type="number" class="w-full p-1.5 border rounded"></div>
-            <div><label class="block mb-1 font-medium">Heure salon semaine (ex: 20h30)</label><input id="set-heure-semaine" type="text" class="w-full p-1.5 border rounded bg-white"></div>
-            <div><label class="block mb-1 font-medium">Heure salon week-end (ex: 22h00)</label><input id="set-heure-weekend" type="text" class="w-full p-1.5 border rounded bg-white"></div>
-            <button onclick="sauvegarderReglages()" class="w-full bg-blue-600 text-white p-2 rounded font-bold text-xs mt-1">Sauvegarder</button>
-          </div>
-        </details>
+        <!-- PANNEAU REGLAGES DYNAMIQUE (Masqué par défaut) -->
+        <div id="child-settings-panel" class="hidden bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs space-y-2 text-marroncafe font-medium">
+          <div><label class="block mb-1 font-semibold text-[10px]">Argent de poche fixe (€)</label><input id="set-fixe" type="number" class="w-full p-1.5 border rounded"></div>
+          <div><label class="block mb-1 font-semibold text-[10px]">Bonus prérequis (€)</label><input id="set-prerequis" type="number" class="w-full p-1.5 border rounded"></div>
+          <div><label class="block mb-1 font-semibold text-[10px]">Bonus scolaire (€)</label><input id="set-scolaire" type="number" class="w-full p-1.5 border rounded"></div>
+          <div><label class="block mb-1 font-semibold text-[10px]">Objectif efforts scolaires requis</label><input id="set-min-scolaire" type="number" class="w-full p-1.5 border rounded"></div>
+          <div><label class="block mb-1 font-semibold text-[10px]">Heure salon semaine (ex: 22h00)</label><input id="set-heure-semaine" type="text" class="w-full p-1.5 border rounded bg-white"></div>
+          <div><label class="block mb-1 font-semibold text-[10px]">Heure salon week-end (ex: 23h30)</label><input id="set-heure-weekend" type="text" class="w-full p-1.5 border rounded bg-white"></div>
+          <button onclick="sauvegarderReglages()" class="w-full bg-blue-600 text-white p-2 rounded font-bold text-xs mt-1">Sauvegarder</button>
+        </div>
 
         <!-- AJOUT D'ÉVÉNEMENT -->
         <div class="space-y-2">
