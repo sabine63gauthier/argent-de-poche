@@ -458,13 +458,19 @@ function renderListMode() {
     return;
   }
   listContainer.innerHTML = calendarEvents.map(ev => {
-    const debut = ev.dateDebut.toDate().toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const d = ev.dateDebut.toDate();
+    const f = ev.dateFin.toDate();
+    const options = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
+    
+    // Affiche "Du [Début] au [Fin]"
+    const dateStr = `Du ${d.toLocaleString('fr-FR', options)} au ${f.toLocaleString('fr-FR', options)}`;
+    
     const deleteBtn = (currentUser.uid === ev.createurId || userRole === 'parent') 
       ? `<button onclick="supprimerEvenement('${ev.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
     return `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 flex justify-between items-center text-[11px]">
       <div>
         <span class="font-bold text-blue-700">${ev.titre}</span>
-        <span class="text-gray-400 block">${debut} (par ${ev.createurNom})</span>
+        <span class="text-gray-400 block">${dateStr} (par ${ev.createurNom})</span>
         ${ev.commentaire ? `<span class="text-gray-500 italic block">"${ev.commentaire}"</span>` : ''}
       </div>
       <div>${deleteBtn}</div>
@@ -490,7 +496,7 @@ function renderGridMode() {
   const nomMois = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   g('calendar-title').innerText = `📅 ${nomMois.charAt(0).toUpperCase() + nomMois.slice(1)}`;
 
-  const premierJourIndex = (new Date(year, month, 1).getDay() + 6) % 7; // Lundi = 0
+  const premierJourIndex = (new Date(year, month, 1).getDay() + 6) % 7;
   const totalJours = new Date(year, month + 1, 0).getDate();
 
   for (let i = 0; i < premierJourIndex; i++) {
@@ -499,16 +505,37 @@ function renderGridMode() {
 
   for (let jour = 1; jour <= totalJours; jour++) {
     const estAujourdhui = (jour === now.getDate());
-    const aEvenement = calendarEvents.some(ev => {
+    
+    // Délimitation de la journée en cours d'évaluation
+    const dateMin = new Date(year, month, jour, 0, 0, 0);
+    const dateMax = new Date(year, month, jour, 23, 59, 59);
+
+    // Filtre les événements qui chevauchent cette journée (idéal pour les multi-jours)
+    const eventsDuJour = calendarEvents.filter(ev => {
       const d = ev.dateDebut.toDate();
-      return d.getDate() === jour && d.getMonth() === month && d.getFullYear() === year;
+      const f = ev.dateFin.toDate();
+      return d <= dateMax && f >= dateMin;
     });
 
+    const aEvenement = eventsDuJour.length > 0;
     const classeToday = estAujourdhui ? 'bg-blue-100 font-bold border border-blue-400' : 'bg-gray-100';
     const pointHtml = aEvenement ? `<div class="w-1.5 h-1.5 mx-auto mt-1 rounded-full bg-blue-600"></div>` : '';
     
+    // Infobulle native au survol (title HTML)
+    const detailsTooltip = eventsDuJour.map(ev => `• ${ev.titre}`).join('\n');
+    const tooltipAttr = aEvenement ? `title="${detailsTooltip}"` : '';
+    
+    // Boîte de dialogue détaillée au clic
+    const detailsAlert = eventsDuJour.map(ev => {
+      const options = { hour: '2-digit', minute: '2-digit' };
+      const commentText = ev.commentaire ? `\n💬 "${ev.commentaire}"` : '';
+      return `📌 ${ev.titre} (par ${ev.createurNom})${commentText}`;
+    }).join('\n\n');
+    
+    const clickAction = aEvenement ? `onclick="alert(\`Événement(s) du ${jour} ${nomMois} :\n\n${detailsAlert}\`)"` : '';
+
     gridDays.innerHTML += `
-      <div class="p-1 rounded text-center cursor-pointer hover:bg-kakipastel transition duration-150 ${classeToday}">
+      <div ${tooltipAttr} ${clickAction} class="p-1 rounded text-center cursor-pointer hover:bg-kakipastel transition duration-150 ${classeToday}">
         <span>${jour}</span>
         ${pointHtml}
       </div>`;
