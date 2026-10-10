@@ -11,6 +11,7 @@ let childHeureSemaine = "20h30", childHeureWeekend = "22h00", selectedChildId = 
 let calendarMode = 'grid'; 
 let unsubCalendar;
 let calendarEvents = [];
+let editEventId = null; // Stocke l'ID de l'événement modifié
 
 
 firebase.auth().onAuthStateChanged(user => {
@@ -398,13 +399,29 @@ function toggleCalendarMode() {
 // Gérer l'état du formulaire
 function toggleFormulaire(show) { g('calendar-form').classList.toggle('hidden', !show); }
 
-function ouvrirAjoutEvenement() {
+function ouvrirAjoutEvenement(eventId = null) {
   toggleFormulaire(true);
-  const now = new Date();
-  const formatLocal = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  g('cal-start').value = formatLocal(now);
-  g('cal-end').value = formatLocal(new Date(now.getTime() + 3600000)); // +1 heure par défaut
+  editEventId = eventId;
+  const formTitle = g('calendar-form').querySelector('h4');
+
+  if (eventId) {
+    formTitle.innerText = "✏️ Modifier l'événement";
+    const ev = calendarEvents.find(e => e.id === eventId);
+    g('cal-title').value = ev.titre;
+    g('cal-start').value = ev.dateDebut.toDate().toISOString().slice(0, 16);
+    g('cal-end').value = ev.dateFin.toDate().toISOString().slice(0, 16);
+    g('cal-rec-type').value = ev.recurrence.type;
+    g('cal-comment').value = ev.commentaire || '';
+  } else {
+    formTitle.innerText = "📅 Créer un événement";
+    g('cal-title').value = ''; g('cal-comment').value = '';
+    const now = new Date();
+    const formatLocal = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    g('cal-start').value = formatLocal(now);
+    g('cal-end').value = formatLocal(new Date(now.getTime() + 3600000));
+  }
 }
+
 
 // Enregistrer l'événement dans Firestore
 function enregistrerEvenement() {
@@ -414,21 +431,27 @@ function enregistrerEvenement() {
   const recType = g('cal-rec-type').value;
   const comment = g('cal-comment').value.trim();
 
-  if (!titre || !startVal || !endVal) return alert("Veuillez remplir le titre et les dates !");
+  if (!titre || !startVal || !endVal) return alert("Remplissez le titre et les dates !");
 
-  db.collection('calendrier').add({
-    titre: titre,
+  const payload = {
+    titre,
     dateDebut: firebase.firestore.Timestamp.fromDate(new Date(startVal)),
     dateFin: firebase.firestore.Timestamp.fromDate(new Date(endVal)),
     createurId: currentUser.uid,
     createurNom: g('user-title').innerText,
     commentaire: comment,
-    commentairesPartages: [],
     recurrence: { type: recType }
-  }).then(() => {
-    alert("Événement ajouté !");
+  };
+
+  // Choix automatique entre création (.add) ou modification (.update)
+  const action = editEventId 
+    ? db.collection('calendrier').doc(editEventId).update(payload)
+    : db.collection('calendrier').add(payload);
+
+  action.then(() => {
+    alert(editEventId ? "Événement modifié !" : "Événement ajouté !");
     toggleFormulaire(false);
-    g('cal-title').value = ''; g('cal-comment').value = '';
+    editEventId = null;
   }).catch(e => alert(e.message));
 }
 
@@ -487,52 +510,36 @@ function supprimerEvenement(id) {
 
 // Rendu de la grille
 function renderGridMode() {
-  const gridDays = g('grid-days');
-  gridDays.innerHTML = '';
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-
+  const gridDays = g('grid-days'); gridDays.innerHTML = '';
+  const now = new Date(); const year = now.getFullYear(); const month = now.getMonth();
   const nomMois = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   g('calendar-title').innerText = `📅 ${nomMois.charAt(0).toUpperCase() + nomMois.slice(1)}`;
 
   const premierJourIndex = (new Date(year, month, 1).getDay() + 6) % 7;
   const totalJours = new Date(year, month + 1, 0).getDate();
 
-  for (let i = 0; i < premierJourIndex; i++) {
-    gridDays.innerHTML += `<div class="p-2 bg-gray-50 rounded"></div>`;
-  }
+  for (let i = 0; i < premierJourIndex; i++) gridDays.innerHTML += `<div class="p-2 bg-gray-50 rounded"></div>`;
 
   for (let jour = 1; jour <= totalJours; jour++) {
     const estAujourdhui = (jour === now.getDate());
-    
-    // Délimitation de la journée en cours d'évaluation
     const dateMin = new Date(year, month, jour, 0, 0, 0);
     const dateMax = new Date(year, month, jour, 23, 59, 59);
 
-    // Filtre les événements qui chevauchent cette journée (idéal pour les multi-jours)
     const eventsDuJour = calendarEvents.filter(ev => {
-      const d = ev.dateDebut.toDate();
-      const f = ev.dateFin.toDate();
-      return d <= dateMax && f >= dateMin;
+      return ev.dateDebut.toDate() <= dateMax && ev.dateFin.toDate() >= dateMin;
     });
 
     const aEvenement = eventsDuJour.length > 0;
     const classeToday = estAujourdhui ? 'bg-blue-100 font-bold border border-blue-400' : 'bg-gray-100';
     const pointHtml = aEvenement ? `<div class="w-1.5 h-1.5 mx-auto mt-1 rounded-full bg-blue-600"></div>` : '';
-    
-    // Infobulle native au survol (title HTML)
-    const detailsTooltip = eventsDuJour.map(ev => `• ${ev.titre}`).join('\n');
-    const tooltipAttr = aEvenement ? `title="${detailsTooltip}"` : '';
-    
-    // Boîte de dialogue détaillée au clic
-    const detailsAlert = eventsDuJour.map(ev => {
-      const options = { hour: '2-digit', minute: '2-digit' };
-      const commentText = ev.commentaire ? `\n💬 "${ev.commentaire}"` : '';
-      return `📌 ${ev.titre} (par ${ev.createurNom})${commentText}`;
-    }).join('\n\n');
-    
-    const clickAction = aEvenement ? `onclick="alert(\`Événement(s) du ${jour} ${nomMois} :\n\n${detailsAlert}\`)"` : '';
+
+    const options = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
+    const detailsTxt = eventsDuJour.map(ev => {
+      return `📌 ${ev.titre} (par ${ev.createurNom})\n🕒 Du ${ev.dateDebut.toDate().toLocaleString('fr-FR', options)} au ${ev.dateFin.toDate().toLocaleString('fr-FR', options)}\n💬 Commentaire : ${ev.commentaire || 'aucun'}`;
+    }).join('\n────────────────\n');
+
+    const tooltipAttr = aEvenement ? `title="${detailsTxt}"` : '';
+    const clickAction = aEvenement ? `onclick="gererClicJour(\`${detailsTxt}\`, ${JSON.stringify(eventsDuJour.map(e => ({id: e.id, createurId: e.createurId})))})"` : '';
 
     gridDays.innerHTML += `
       <div ${tooltipAttr} ${clickAction} class="p-1 rounded text-center cursor-pointer hover:bg-kakipastel transition duration-150 ${classeToday}">
@@ -541,6 +548,19 @@ function renderGridMode() {
       </div>`;
   }
 }
+
+// Fonction utilitaire de clic
+function gererClicJour(detailsText, eventsMeta) {
+  alert(detailsText);
+  eventsMeta.forEach(meta => {
+    if (currentUser.uid === meta.createurId || userRole === 'parent') {
+      if (confirm(`Voulez-vous modifier cet événement ?`)) {
+        ouvrirAjoutEvenement(meta.id);
+      }
+    }
+  });
+}
+
 
 
 
