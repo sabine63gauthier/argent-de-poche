@@ -481,22 +481,21 @@ function renderListMode() {
     return;
   }
   listContainer.innerHTML = calendarEvents.map(ev => {
-    const d = ev.dateDebut.toDate();
-    const f = ev.dateFin.toDate();
+    const d = ev.dateDebut.toDate(); const f = ev.dateFin.toDate();
     const options = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
-    
-    // Affiche "Du [Début] au [Fin]"
     const dateStr = `Du ${d.toLocaleString('fr-FR', options)} au ${f.toLocaleString('fr-FR', options)}`;
     
-    const deleteBtn = (currentUser.uid === ev.createurId || userRole === 'parent') 
-      ? `<button onclick="supprimerEvenement('${ev.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
+    const estAutorise = (currentUser.uid === ev.createurId || userRole === 'parent');
+    const editBtn = estAutorise ? `<button onclick="ouvrirAjoutEvenement('${ev.id}')" class="text-blue-500 font-bold ml-2">✏️</button>` : '';
+    const deleteBtn = estAutorise ? `<button onclick="supprimerEvenement('${ev.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
+
     return `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 flex justify-between items-center text-[11px]">
       <div>
         <span class="font-bold text-blue-700">${ev.titre}</span>
         <span class="text-gray-400 block">${dateStr} (par ${ev.createurNom})</span>
         ${ev.commentaire ? `<span class="text-gray-500 italic block">"${ev.commentaire}"</span>` : ''}
       </div>
-      <div>${deleteBtn}</div>
+      <div class="flex items-center space-x-1">${editBtn}${deleteBtn}</div>
     </div>`;
   }).join('');
 }
@@ -533,13 +532,10 @@ function renderGridMode() {
     const classeToday = estAujourdhui ? 'bg-blue-100 font-bold border border-blue-400' : 'bg-gray-100';
     const pointHtml = aEvenement ? `<div class="w-1.5 h-1.5 mx-auto mt-1 rounded-full bg-blue-600"></div>` : '';
 
-    const options = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
-    const detailsTxt = eventsDuJour.map(ev => {
-      return `📌 ${ev.titre} (par ${ev.createurNom})\n🕒 Du ${ev.dateDebut.toDate().toLocaleString('fr-FR', options)} au ${ev.dateFin.toDate().toLocaleString('fr-FR', options)}\n💬 Commentaire : ${ev.commentaire || 'aucun'}`;
-    }).join('\n────────────────\n');
-
-    const tooltipAttr = aEvenement ? `title="${detailsTxt}"` : '';
-    const clickAction = aEvenement ? `onclick="gererClicJour(\`${detailsTxt}\`, ${JSON.stringify(eventsDuJour.map(e => ({id: e.id, createurId: e.createurId})))})"` : '';
+    // Survol (infobulle) et clic sécurisés en passant uniquement le numéro du jour
+    const tooltipText = eventsDuJour.map(ev => `• ${ev.titre}`).join('\n');
+    const tooltipAttr = aEvenement ? `title="${tooltipText}"` : '';
+    const clickAction = aEvenement ? `onclick="gererClicJour(${jour})"` : '';
 
     gridDays.innerHTML += `
       <div ${tooltipAttr} ${clickAction} class="p-1 rounded text-center cursor-pointer hover:bg-kakipastel transition duration-150 ${classeToday}">
@@ -549,18 +545,31 @@ function renderGridMode() {
   }
 }
 
-// Fonction utilitaire de clic
-function gererClicJour(detailsText, eventsMeta) {
-  alert(detailsText);
-  eventsMeta.forEach(meta => {
-    if (currentUser.uid === meta.createurId || userRole === 'parent') {
-      if (confirm(`Voulez-vous modifier cet événement ?`)) {
-        ouvrirAjoutEvenement(meta.id);
+function gererClicJour(jour) {
+  const now = new Date(); const year = now.getFullYear(); const month = now.getMonth();
+  const dateMin = new Date(year, month, jour, 0, 0, 0);
+  const dateMax = new Date(year, month, jour, 23, 59, 59);
+
+  const eventsDuJour = calendarEvents.filter(ev => {
+    return ev.dateDebut.toDate() <= dateMax && ev.dateFin.toDate() >= dateMin;
+  });
+
+  if (eventsDuJour.length === 0) return;
+
+  const options = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
+  const detailsAlert = eventsDuJour.map(ev => {
+    const commentText = ev.commentaire ? `\n💬 "${ev.commentaire}"` : '';
+    return `📌 ${ev.titre} (par ${ev.createurNom})\n🕒 Du ${ev.dateDebut.toDate().toLocaleString('fr-FR', options)} au ${ev.dateFin.toDate().toLocaleString('fr-FR', options)}${commentText}`;
+  }).join('\n\n');
+
+  alert(`Événement(s) du ${jour} :\n\n${detailsAlert}`);
+
+  // Option de modification au clic
+  eventsDuJour.forEach(ev => {
+    if (currentUser.uid === ev.createurId || userRole === 'parent') {
+      if (confirm(`Voulez-vous modifier l'événement "${ev.titre}" ?`)) {
+        ouvrirAjoutEvenement(ev.id);
       }
     }
   });
 }
-
-
-
-
