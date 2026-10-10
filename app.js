@@ -484,10 +484,13 @@ function renderListMode() {
     const d = ev.dateDebut.toDate(); const f = ev.dateFin.toDate();
     const options = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
     const dateStr = `Du ${d.toLocaleString('fr-FR', options)} au ${f.toLocaleString('fr-FR', options)}`;
-    
-    const estAutorise = (currentUser.uid === ev.createurId || userRole === 'parent');
-    const editBtn = estAutorise ? `<button onclick="ouvrirAjoutEvenement('${ev.id}')" class="text-blue-500 font-bold ml-2">✏️</button>` : '';
-    const deleteBtn = estAutorise ? `<button onclick="supprimerEvenement('${ev.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
+       
+    const estProprietaire = (currentUser.uid === ev.createurId);
+    const estParentOuProprio = (currentUser.uid === ev.createurId || userRole === 'parent');
+
+    const editBtn = estProprietaire ? `<button onclick="ouvrirAjoutEvenement('${ev.id}')" class="text-blue-500 font-bold ml-2">✏️</button>` : '';
+    const deleteBtn = estParentOuProprio ? `<button onclick="supprimerEvenement('${ev.id}')" class="text-red-500 font-bold ml-2">❌</button>` : '';
+
 
     return `<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 flex justify-between items-center text-[11px]">
       <div>
@@ -565,11 +568,13 @@ function gererClicJour(jour) {
   alert(`Événement(s) du ${jour} :\n\n${detailsAlert}`);
 
   // Option de modification au clic
+    // Proposer la modification uniquement si l'utilisateur connecté est le créateur (propriétaire)
   eventsDuJour.forEach(ev => {
-    if (currentUser.uid === ev.createurId || userRole === 'parent') {
+    if (currentUser.uid === ev.createurId) { // Condition stricte propriétaire
       if (confirm(`Voulez-vous modifier l'événement "${ev.titre}" ?`)) {
         ouvrirAjoutEvenement(ev.id);
       }
     }
   });
+
 }
