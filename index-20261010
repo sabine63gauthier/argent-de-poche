@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
+  <title>PoOky</title>
+  <meta name="apple-mobile-web-app-title" content="PoOky">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Short+Stack&display=swap');
+  
+  /* Règle magique pour agrandir proportionnellement tout le texte */
+  html {
+    font-size: 21px; 
+  }
+  
+  /* Police principale de l'application */
+  body {
+    font-family: 'Patrick Hand', cursive;
+  }
+
+  /* Police 100% enfantine pour le titre PoOky uniquement */
+  .title-childish {
+    font-family: 'Short Stack', cursive;
+  }
+
+  :root {
+    --beigelin: #EAE3D2;
+    --sabledore: #D6CDA4;
+    --kakipastel: #B4C4A8;
+    --nuderose: #DBCBB6;
+    --taupeclair: #C2B09B;
+    --marroncafe: #A9907E;
+  }
+</style>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          beigelin: 'var(--beigelin)',
+          sabledore: 'var(--sabledore)',
+          kakipastel: 'var(--kakipastel)',
+          nuderose: 'var(--nuderose)',
+          taupeclair: 'var(--taupeclair)',
+          marroncafe: 'var(--marroncafe)',
+          // Surcharge magique des couleurs par défaut
+          green: {
+            500: '#9FBE9A',
+            600: '#9FBE9A'
+          },
+          blue: {
+            500: '#6EA8DA',
+            600: '#6EA8DA',
+            700: '#6EA8DA'
+          },
+          red: {
+            500: '#FB2943',
+            600: '#FB2943'
+          }
+        }
+      }
+    }
+  }
+</script>
+</head>
+<body class="bg-beigelin min-h-screen p-4 flex justify-center items-start text-marroncafe">
+  <div class="w-full max-w-md bg-nuderose p-6 rounded-2xl shadow-md border border-taupeclair">
+    <!-- CONNEXION -->
+    <div id="login-card" class="block">
+      <h2 class="text-4xl font-bold mb-4 text-center text-blue-600 title-childish">PoOky</h2>
+      <input id="email" type="email" placeholder="Email" class="w-full p-2 border mb-3 rounded-lg">
+      <input id="pass" type="password" placeholder="Mot de passe" class="w-full p-3 border mb-4 rounded-lg">
+      <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold">Se connecter</button>
+    </div>
+
+    <!-- TABLEAU DE BORD -->
+    <div id="dashboard" class="hidden">
+      <div class="flex justify-between items-center mb-4 pb-2 border-b">
+        <div class="flex items-center">
+          <h2 id="user-title" class="text-xl font-bold text-blue-600">Chargement...</h2>
+          <button onclick="toggleHelp(true)" class="ml-2 text-base">✨</button>
+        </div>
+        <div class="flex items-center space-x-3">
+          <!-- Bouton réglages (⚙️) masqué par défaut, visible pour le parent en JS -->
+          <button id="parent-settings-btn" onclick="toggleSettings()" class="hidden text-xl">⚙️</button>
+          <button onclick="logout()" class="text-red-500 font-semibold text-sm">Déconnexion</button>
+        </div>
+      </div>
+
+      <!-- VUE PARENT -->
+      <div id="parent-view" class="hidden space-y-4">
+       <div id="child-buttons-container" class="flex space-x-2 w-full"></div>
+        <div class="bg-blue-50 p-4 rounded-xl text-center">
+          <p class="text-gray-600 text-sm">Total Hebdomadaire</p>
+          <h3 id="child-total" class="text-3xl font-bold text-blue-700">0</h3>
+          <p id="child-breakdown" class="text-[15px] text-gray-500 mt-1 font-medium">🎓 0 | 🚀 0 | 😈 0</p>
+        </div>
+        
+        <!-- DEMANDES EN ATTENTE -->
+        <div id="pending-requests-card" class="hidden bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-2">
+          <h3 class="font-bold text-purple-800 text-xs">⏳ DEMANDES EN ATTENTE</h3>
+          <div id="pending-list" class="space-y-2"></div>
+        </div>
+
+        <div id="cloture-top-slot"></div>
+
+        <!-- PANNEAU REGLAGES DYNAMIQUE (Masqué par défaut) -->
+        <div id="child-settings-panel" class="hidden bg-gray-50 p-4 rounded-xl border border-gray-200 text-xs space-y-2 text-marroncafe font-medium">
+          <div><label class="block mb-1 font-semibold text-[10px]">Argent de poche fixe (€)</label><input id="set-fixe" type="number" class="w-full p-1.5 border rounded"></div>
+          <div><label class="block mb-1 font-semibold text-[10px]">Bonus prérequis (€)</label><input id="set-prerequis" type="number" class="w-full p-1.5 border rounded"></div>
+          <div><label class="block mb-1 font-semibold text-[10px]">Bonus scolaire (€)</label><input id="set-scolaire" type="number" class="w-full p-1.5 border rounded"></div>
+          <div><label class="block mb-1 font-semibold text-[10px]">Objectif efforts scolaires requis</label><input id="set-min-scolaire" type="number" class="w-full p-1.5 border rounded"></div>
+          <div><label class="block mb-1 font-semibold text-[10px]">Heure salon semaine (ex: 22h00)</label><input id="set-heure-semaine" type="text" class="w-full p-1.5 border rounded bg-white"></div>
+          <div><label class="block mb-1 font-semibold text-[10px]">Heure salon week-end (ex: 23h30)</label><input id="set-heure-weekend" type="text" class="w-full p-1.5 border rounded bg-white"></div>
+          <button onclick="sauvegarderReglages()" class="w-full bg-blue-600 text-white p-2 rounded font-bold text-xs mt-1">Sauvegarder</button>
+        </div>
+
+        <!-- AJOUT D'ÉVÉNEMENT -->
+        <div class="space-y-2">
+          <select id="category-select" onchange="checkCategory(this.value)" class="w-full p-2 border rounded-lg bg-white text-xs"></select>
+          <input id="comment" type="text" placeholder="Commentaire / Détail..." class="w-full p-2 border rounded-lg">
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="addPoint('scolaire', 1)" class="bg-green-500 text-white p-2 rounded-lg text-xs font-bold">+1 Scolaire</button>
+            <button onclick="addPoint('autre', 1)" class="bg-blue-500 text-white p-2 rounded-lg text-xs font-bold">+1 Autre</button>
+            <button onclick="addPoint('manquement', -1)" class="bg-red-500 text-white p-2 rounded-lg text-xs font-bold">-1 Manque</button>
+          </div>
+        </div>
+      </div>
+
+            <!-- VUE ENFANT -->
+      <div id="child-view" class="hidden space-y-4">
+        <div class="bg-blue-50 p-4 rounded-xl text-center">
+          <!-- Alerte Table dynamique -->
+          <div id="my-table-duty" class="hidden text-sm text-blue-800 font-bold mb-2"> ** 🍽️ ** </div>
+          <p class="text-gray-600 text-sm">Mon Solde de la Semaine</p>
+           <h3 id="my-total" class="text-3xl font-bold text-blue-700">0</h3>
+          <p id="my-breakdown" class="text-[15px] text-gray-500 mt-1 font-medium">🎓 0 | 🚀 0 | 😈 0</p>
+        </div>
+        <div class="bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-2">
+          <h4 class="font-bold text-purple-900 text-xs text-center">PROPOSER UN EFFORT</h4>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="ouvrirProposition('scolaire')" class="bg-green-600 text-white p-2 rounded-lg text-xs font-bold">🎓 Effort Scolaire</button>
+            <button onclick="ouvrirProposition('autre')" class="bg-blue-600 text-white p-2 rounded-lg text-xs font-bold">🚀 Autre Effort</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVITÉS EN COURS -->
+      <div class="mt-6 border-t pt-4">
+        <h4 class="font-bold text-gray-700 mb-2 text-sm">Activités en cours</h4>
+        <div id="events-list" class="space-y-4"></div>
+      </div>
+
+      <div id="cloture-bottom-slot" class="mt-4"></div>
+
+      <!-- HISTORIQUE DES CLÔTURES -->
+      <div class="mt-6 border-t pt-4">
+        <h4 class="font-bold text-gray-700 mb-2 text-sm">Semaines clôturées</h4>
+        <div id="clotures-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ELEMENT CLÔTURE UNIQUE -->
+  <div id="cloture-card" class="hidden bg-yellow-50 p-4 rounded-xl border border-yellow-200 space-y-3">
+    <h3 class="font-bold text-yellow-800 text-sm">PROPOSITION DE CLÔTURE</h3>
+    <div class="text-xs text-gray-700 space-y-1">
+      <p>🎓 Efforts scolaires : <span id="stat-scolaires" class="font-bold">0</span>/<span id="stat-requis" class="font-bold">3</span></p>
+      <p>💶 Fixe : <span id="stat-fixe" class="font-bold">5</span> €</p>
+    </div>
+    <div class="space-y-2 text-xs">
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" id="check-prerequis" class="rounded">
+        <span>Accorder <span id="stat-prerequis-val">5</span> € de prérequis (Total ≥ 0)</span>
+      </label>
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" id="check-scolaire" class="rounded">
+        <span>Accorder <span id="stat-scolaire-val">5</span> € de bonus scolaire</span>
+      </label>
+      <input id="parent-comment" type="text" placeholder="Commentaire final de clôture..." class="w-full p-2 border rounded bg-white">
+    </div>
+    <button onclick="validerSemaine()" class="w-full bg-yellow-600 text-white p-2 rounded-lg text-xs font-bold">VALIDER DÉFINITIVEMENT</button>
+  </div>
+
+      <!-- MODAL D'AIDE LUDIQUE -->
+  <div id="help-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white p-6 rounded-2xl max-w-sm w-full space-y-4 text-center max-h-[85vh] overflow-y-auto">
+      <h3 class="text-xl font-bold text-blue-600">💄 Glow Up ton compte en banque !</h3>
+
+      <div class="space-y-3 text-left text-sm text-gray-700">
+        <p class="font-bold text-center text-gray-900 bg-blue-50 py-1.5 rounded-lg">Cagnotte de base : <span id="help-text-fixe" class="font-bold">5</span> € / semaine</p>
+        
+         <!-- Section Manquements (Sans encadré et à la même taille d'écriture) -->
+        <div class="space-y-2 py-1">
+          <p class="font-bold text-red-600">😈 Manquements (-1 point) :</p>
+          <p>Conserve tes <span id="help-text-prerequis" class="font-bold">5</span> € de bonus prérequis en respectant simplement les règles de vie de la famille. Tout manquement t'exposera à des points négatifs :</p>
+          <ul class="list-disc pl-5 text-gray-600 mt-1 space-y-1">
+            <li>Douche, cartable et table mis avant 20h</li>
+            <li>Chambre rangée une fois par semaine</li>
+            <li>Débarrasser la table & devoirs faits</li>
+            <li>Linge sale mis dans le panier</li>
+            <li>Brossage des dents & demandes ponctuelles respectées</li>
+            <li>Téléphone déposé au salon avant <span id="help-text-heure-semaine" class="font-bold">22h</span> (semaine) et <span id="help-text-heure-weekend" class="font-bold">23h30</span> (week-end)</li>
+          </ul>
+          <p class="text-red-600 font-bold mt-2 pt-1 border-t border-gray-200">⚠️ Attention : un score Total négatif (score inférieur à 0) à la fin de la semaine annule automatiquement ton bonus prérequis !</p>
+        </div>
+
+        <p>🎓 <strong>Efforts Scolaires (+1) :</strong> Fais-en au moins <span id="help-text-min-scol" class="font-bold">3</span> pour débloquer ton bonus de <span id="help-text-bonus-scol" class="font-bold">5</span> € !</p>
+        
+        <p>🚀 <strong>Autres Efforts (+1) :</strong> Lave-vaisselle vidé avant l'école, laver la salle de bain, étendre la lessive, etc. pour augmenter ton score !</p>
+      </div>
+      <button onclick="toggleHelp(false)" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold text-sm">J'AI COMPRIS !</button>
+    </div>
+  </div>
+
+  <!-- CHARGEMENT DES SCRIPTS FIREBASE + NOTRE SCRIPT SEPARE -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
