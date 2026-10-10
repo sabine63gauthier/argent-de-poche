@@ -79,7 +79,7 @@
       <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold">Se connecter</button>
     </div>
 
-        <!-- TABLEAU DE BORD -->
+         <!-- TABLEAU DE BORD -->
     <div id="dashboard" class="hidden">
       <div class="flex justify-between items-center mb-4 pb-2 border-b">
         <div class="flex items-center">
@@ -88,12 +88,13 @@
           <button id="calendar-btn" onclick="toggleCalendarSection()" class="ml-2 text-base">📅</button>
         </div>
         <div class="flex items-center space-x-3">
+          <!-- Bouton réglages (⚙️) masqué par défaut, visible pour le parent en JS -->
           <button id="parent-settings-btn" onclick="toggleSettings()" class="hidden text-xl">⚙️</button>
           <button onclick="logout()" class="text-red-500 font-semibold text-sm">Déconnexion</button>
         </div>
       </div>
 
-      <!-- CALENDRIER PARTAGÉ (Entièrement autonome et bien séparé) -->
+      <!-- 1. CALENDRIER PARTAGÉ (Entièrement fermé et autonome !) -->
       <div id="calendar-section" class="hidden bg-white p-4 rounded-xl border border-taupeclair space-y-3 text-xs mt-4">
         <div class="flex justify-between items-center pb-2 border-b">
           <h3 id="calendar-title" class="font-bold text-sm text-blue-600">📅 Calendrier</h3>
@@ -133,7 +134,7 @@
           </div>
         </div>
 
-        <!-- Mode Grille (Affiché par défaut dans le calendrier) -->
+        <!-- Mode Grille (Affiché par défaut) -->
         <div id="calendar-grid-mode" class="block space-y-2">
           <div class="grid grid-cols-7 gap-1 text-center font-bold text-gray-500">
             <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
@@ -141,13 +142,13 @@
           <div id="grid-days" class="grid grid-cols-7 gap-1"></div>
         </div>
 
-        <!-- Mode Liste (Masqué par défaut dans le calendrier) -->
+        <!-- Mode Liste (Masqué par défaut) -->
         <div id="calendar-list-mode" class="hidden space-y-2 max-h-60 overflow-y-auto">
           <p class="text-gray-400 italic text-center">Aucun événement à venir.</p>
         </div>
-      </div> <!-- FIN DU CALENDRIER -->
+      </div> <!-- FIN DE LA SECTION CALENDRIER -->
 
-      <!-- VUE PARENT -->
+      <!-- 2. VUE PARENT -->
       <div id="parent-view" class="hidden space-y-4">
         <div id="child-buttons-container" class="flex space-x-2 w-full"></div>
         <div class="bg-blue-50 p-4 rounded-xl text-center">
@@ -187,7 +188,7 @@
         </div>
       </div>
 
-      <!-- VUE ENFANT -->
+      <!-- 3. VUE ENFANT -->
       <div id="child-view" class="hidden space-y-4">
         <div class="bg-blue-50 p-4 rounded-xl text-center">
           <!-- Alerte Table dynamique -->
